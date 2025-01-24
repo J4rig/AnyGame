@@ -1,6 +1,7 @@
 #include <raylib.h>
 #include <raymath.h>
 #include <vector>
+#include <queue>
 
 #define MAX_TYPE 3
 
@@ -20,7 +21,9 @@ public:
 
 	Stockpile(Vector2 pos, int cap);
 
+	bool hasSpace();
 	bool isFull();
+	int spaceLeft();
 	void draw();
 };
 
@@ -92,10 +95,12 @@ public:
 
 	int capacity;
 	int collected;
-	int collected_types[MAX_TYPE] = { 0 };
+	std::vector<int> collected_types;
 
-	Resource* targeted_resource;
-	Stockpile* targeted_stockpile;
+	//int collected_types[MAX_TYPE] = { 0 };
+
+	std::queue<Resource*> targeted_resources;
+	std::queue<Stockpile*> targeted_stockpiles;
 	Generator* targeted_generator;
 
 
