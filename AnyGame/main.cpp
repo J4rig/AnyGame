@@ -65,7 +65,7 @@ bool Generator::isEmpty() {
 
 Worker::Worker(Vector2 pos, float speed) :
 	pos(pos), r(10.0f), speed(speed), state(WorkerStates::IDLE), capacity(1), collected(0),
-	targeted_resource(nullptr), targeted_stockpile(nullptr), targeted_generator(nullptr), target_pos(pos) {
+	targeted_resource(nullptr), targeted_stockpile(nullptr), targeted_generator(nullptr) {
 };
 
 void Worker::draw() {
@@ -165,18 +165,15 @@ bool deleteResource(Resource* resource, std::vector<Resource*>& resources) {
 // if possible, sets all the necessary data for valid resource collection route
 // TODO add suport for capacity > 1
 bool Worker::collectResource(std::vector<Resource*> resources, std::vector<Stockpile*> stockpiles, std::vector<Worker*> workers) {
-	Vector2 new_target_pos;
 	Resource* new_targeted_resource;
 	Stockpile* new_targeted_stockpile;
 
 	new_targeted_resource = findClosestResource(pos, resources);
 	if (new_targeted_resource != nullptr) {
-		new_target_pos = new_targeted_resource->pos;
-		new_targeted_stockpile = findClosestStockpile(new_target_pos, stockpiles, false);
+		new_targeted_stockpile = findClosestStockpile(new_targeted_resource->pos, stockpiles, false);
 		if (new_targeted_stockpile != nullptr) {
 			targeted_resource = new_targeted_resource;
 			targeted_stockpile = new_targeted_stockpile;
-			target_pos = new_target_pos;
 
 			targeted_stockpile->about_to_be_stored++;
 			targeted_resource->occupied = true;
@@ -197,14 +194,13 @@ void Worker::update(std::vector<Resource*> &resources, std::vector<Stockpile*> s
 				targeted_generator = findClosestGenerator(pos, generators, workers);	
 				if (targeted_generator != nullptr) {
 					targeted_generator->occupied = true;
-					target_pos = targeted_generator->pos;
 					state = WorkerStates::GENERATING;
 				}
-				else if (Vector2Distance(pos, target_pos) <= targeted_stockpile->r + r) {
-					pos = rotateAroundPoint(pos, target_pos, 0.5f * GetFrameTime());
+				else if (Vector2Distance(pos, targeted_stockpile->pos) <= targeted_stockpile->r + r) {
+					pos = rotateAroundPoint(pos, targeted_stockpile->pos, 0.5f * GetFrameTime());
 				}
 				else {
-					pos = Vector2MoveTowards(pos, target_pos, SPEED_MOD * speed * GetFrameTime());
+					pos = Vector2MoveTowards(pos, targeted_stockpile->pos, SPEED_MOD * speed * GetFrameTime());
 				}
 			}
 			else {
@@ -213,51 +209,43 @@ void Worker::update(std::vector<Resource*> &resources, std::vector<Stockpile*> s
 		}
 		else {
 			targeted_stockpile = findClosestStockpile(pos, stockpiles, true);
-			if (targeted_stockpile != nullptr) {
-				target_pos = targeted_stockpile->pos;
-			}
 		}
 		
 	}
 
 	else if (state == WorkerStates::COLLECTING) {
 		if (!isFull()) {
-			if (Vector2Distance(pos, target_pos) <= 0.5f) {
+			if (Vector2Distance(pos, targeted_resource->pos) <= 0.5f) {
 				deleteResource(targeted_resource, resources);
 				collected++;
 				collected_types[targeted_resource->type]++;
 			}
 			else
 			{
-				pos = Vector2MoveTowards(pos, target_pos, SPEED_MOD * speed * GetFrameTime());
+				pos = Vector2MoveTowards(pos, targeted_resource->pos, SPEED_MOD * speed * GetFrameTime());
 			}
 		}
 		else {
-			if (targeted_stockpile->pos != target_pos) {
-				target_pos = targeted_stockpile->pos;
+			if (Vector2Distance(pos, targeted_stockpile->pos) <= targeted_stockpile->r + r) { // TODO properly implement bigger Worker capacity
+				targeted_stockpile->currently_stored += collected; // check if is not over stockpile capacity
+				collected = 0;
+						
+				for (int i = 0; i < MAX_TYPE; i++) {
+					targeted_stockpile->stored_types[i] += collected_types[i];						
+				}
+
+				std::fill(collected_types, collected_types + MAX_TYPE, 0);
+				state = WorkerStates::IDLE;
 			}
 			else {
-				if (Vector2Distance(pos, target_pos) <= targeted_stockpile->r + r) { // TODO properly implement bigger Worker capacity
-					targeted_stockpile->currently_stored += collected; // check if is not over stockpile capacity
-					collected = 0;
-						
-					for (int i = 0; i < MAX_TYPE; i++) {
-						targeted_stockpile->stored_types[i] += collected_types[i];						
-					}
-
-					std::fill(collected_types, collected_types + MAX_TYPE, 0);
-					state = WorkerStates::IDLE;
-				}
-				else {
-					pos = Vector2MoveTowards(pos, target_pos, SPEED_MOD * speed * GetFrameTime());
-				}
+				pos = Vector2MoveTowards(pos, targeted_stockpile->pos, SPEED_MOD * speed * GetFrameTime());
 			}
 		}
 	}
 
 	else if (state == WorkerStates::GENERATING) {
-		if (Vector2Distance(pos, target_pos) <= 0.5f) {
-			pos = target_pos;
+		if (Vector2Distance(pos, targeted_generator->pos) <= 0.5f) {
+			pos = targeted_generator->pos;
 			targeted_generator->operated = true;
 			if (targeted_generator->just_generated) {
 				targeted_generator->just_generated = false;
@@ -265,11 +253,10 @@ void Worker::update(std::vector<Resource*> &resources, std::vector<Stockpile*> s
 				targeted_generator->time_operated = 0.0f;
 				targeted_generator->occupied = false;
 				state = WorkerStates::IDLE;
-				target_pos = targeted_stockpile->pos;
 			}
 		}
 		else {
-			pos = Vector2MoveTowards(pos, target_pos, speed * SPEED_MOD * GetFrameTime());
+			pos = Vector2MoveTowards(pos, targeted_generator->pos, speed * SPEED_MOD * GetFrameTime());
 		}
 	}
 
@@ -381,14 +368,14 @@ int main() {
 			DrawCircleV(res->pos, res->r, type_color[res->type]);
 		}
 
-		//int i = 0;
+		int i = 0;
 		for (Worker* w : workers) {
 			if (!pause) {
 				w->update(resources, stockpiles, workers, generators);
-				//printf("Worker %i state: %i\n", i, c->state);
+				printf("Worker %i state: %i\n", i, w->state);
 			}
 			w->draw();
-			//i++;
+			i++;
 		}
 		
 		if (draw_dummy) {

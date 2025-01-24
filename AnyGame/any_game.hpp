@@ -97,7 +97,6 @@ public:
 	Resource* targeted_resource;
 	Stockpile* targeted_stockpile;
 	Generator* targeted_generator;
-	Vector2 target_pos;
 
 
 	Worker(Vector2 pos, float speed);
