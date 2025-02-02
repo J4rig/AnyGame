@@ -321,61 +321,63 @@ void Worker::sortTargetedStockpilesQueue() {
 bool Worker::collectResources(std::vector<Resource*> resources, std::vector<Stockpile*> stockpiles, std::vector<Worker*> workers) {
 	int found_resources = 0;
 
+	Vector2 lastPos = {};
+
 	Resource* new_targeted_resource = nullptr;
-	Stockpile* new_targeted_stockpile = nullptr;
 
 	while (found_resources < capacity) {
-		new_targeted_resource = findClosestResource(pos, resources, -1);
-		if (new_targeted_resource != nullptr) {
-			std::array<int, MAX_TYPE> types = { 0 }; // useless
-			new_targeted_stockpile = findClosestStockpile(new_targeted_resource->pos, stockpiles, 0, types);
-			if (new_targeted_stockpile != nullptr) {
-				new_targeted_resource->occupied = true;
-				//new_targeted_stockpile->about_to_be_stored++;
-				targeted_resources.push(new_targeted_resource);
-				if (targeted_stockpiles.front() != new_targeted_stockpile) {
-					if (found_resources < targeted_stockpiles.front()->spaceLeft()) {
-						targeted_stockpiles.pop();
-					}
-					targeted_stockpiles.push(new_targeted_stockpile);
-				}
-				found_resources++;
-			}
-			else {			
-				break;
-			}
+		if ((new_targeted_resource = findClosestResource(pos, resources, -1)) != nullptr) {
+			new_targeted_resource->occupied = true;
+			printf("found resource \n");
+			targeted_resources.push(new_targeted_resource);
+			lastPos = new_targeted_resource->pos;
+			found_resources++;
+			new_targeted_resource = nullptr;
 		}
 		else {
 			break;
-		}
-
-		new_targeted_resource = nullptr;
-		new_targeted_stockpile = nullptr;
+		}	
 	}
 
-	// to optimize delivery to closest of choosen stockpiles, sort the queue, then reserve space for resources 
-	if (found_resources > 0) {
+	std::queue<Resource*> tmp = {};
+	while (!targeted_resources.empty()) {
+		tmp.push(targeted_resources.front());
+		targeted_resources.pop();
+	}
 
-		sortTargetedStockpilesQueue();
-		//printf("sorted\n");
+	Stockpile* new_targeted_stockpile = nullptr;
 
-		std::queue<Stockpile*> tmp = {};
-		int cnt = found_resources;
-		while (!targeted_stockpiles.empty()) {
-			int min_int = std::min(cnt, targeted_stockpiles.front()->spaceLeft());
-			targeted_stockpiles.front()->about_to_be_stored += min_int;
-			if (cnt > 0) {
-				tmp.push(targeted_stockpiles.front());
-				//printf("here\n");
+	bool first = true;
+
+	while (!tmp.empty()) {
+		std::array<int, MAX_TYPE> types = { 0 }; // useless
+		if ((new_targeted_stockpile = findClosestStockpile(lastPos, stockpiles, 0, types)) != nullptr) {
+			targeted_resources.push(tmp.front());		
+
+			new_targeted_stockpile->about_to_be_stored++;
+
+			if (first) {
+				while (!targeted_stockpiles.empty()) {
+					targeted_stockpiles.pop();
+				}
+				first = false;
 			}
-			cnt -= min_int;
-			targeted_stockpiles.pop();
+
+			if (targeted_stockpiles.empty() || new_targeted_stockpile != targeted_stockpiles.front()) {
+				printf("pushing new stockpile");
+				targeted_stockpiles.push(new_targeted_stockpile);
+			}	
+			new_targeted_stockpile = nullptr;
+			
 		}
-		while (!tmp.empty()) {
-			targeted_stockpiles.push(tmp.front());
-			tmp.pop();
+		else {
+			printf("no room in storage \n");
+			tmp.front()->occupied = false;
+			found_resources--;
 		}
+		tmp.pop();
 	}
+
 	return found_resources > 0;
 }
 
@@ -437,6 +439,24 @@ void Worker::update(std::vector<Resource*> &resources, std::vector<Stockpile*> s
 			}
 
 			else if (!collectResources(resources, stockpiles, workers)) {
+
+				//debug
+				std::queue<Stockpile*> tmp;
+				printf("Worker w%i targeted stockpiles:\n", id);
+				while (!targeted_stockpiles.empty()) {
+					printf("  %i  ", targeted_stockpiles.front()->id);
+					tmp.push(targeted_stockpiles.front());
+					targeted_stockpiles.pop();
+				}
+				printf("end\n");
+
+				while (!tmp.empty()) {
+					targeted_stockpiles.push(tmp.front());
+					tmp.pop();
+				}
+				//
+
+
 				targeted_generator = findClosestGenerator(pos, generators, workers);	
 				if (targeted_generator != nullptr) {
 					targeted_generator->occupied = true;
@@ -451,26 +471,26 @@ void Worker::update(std::vector<Resource*> &resources, std::vector<Stockpile*> s
 			}
 			else {
 
-				//debug
-				std::queue<Stockpile*> tmp;
-				printf("Worker w%i targeted stockpiles:\n", id);
-				while (!targeted_stockpiles.empty()) {
-					printf("  %i  ", targeted_stockpiles.front()->id);
-					tmp.push(targeted_stockpiles.front());
-					targeted_stockpiles.pop();
-				}
-				printf("\n");
+				////debug
+				//std::queue<Stockpile*> tmp;
+				//printf("Worker w%i targeted stockpiles:\n", id);
+				//while (!targeted_stockpiles.empty()) {
+				//	printf("  %i  ", targeted_stockpiles.front()->id);
+				//	tmp.push(targeted_stockpiles.front());
+				//	targeted_stockpiles.pop();
+				//}
+				//printf("\n");
 
-				while (!tmp.empty()) {
-					targeted_stockpiles.push(tmp.front());
-					tmp.pop();
-				}
-				printf("Stockpile states:\n\t");
-				for (Stockpile* s : stockpiles) {
-					printf("s%i : %i, ", s->id, s->about_to_be_stored);
-				}
-				printf("\n");
-				//
+				//while (!tmp.empty()) {
+				//	targeted_stockpiles.push(tmp.front());
+				//	tmp.pop();
+				//}
+				//printf("Stockpile states:\n\t");
+				//for (Stockpile* s : stockpiles) {
+				//	printf("s%i : %i, ", s->id, s->about_to_be_stored);
+				//}
+				//printf("\n");
+				////
 
 				state = WORKER_STATES::COLLECTING;
 			}
