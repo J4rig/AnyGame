@@ -8,12 +8,20 @@
 
 #define SPEED_MOD 100
 
-Color type_color[MAX_TYPE] = { MAGENTA,DARKGREEN,DARKBLUE };
+#define WORKER_CAPACITY 3
+
+int construction_id = 0;
+int stockpile_id = 0;
+int resource_id = 0;
+int worker_id = 0;
+int generator_id = 0;
+
+Color type_color[MAX_TYPE] = { MAGENTA, DARKGREEN, DARKBLUE };
 
 // class that holds information for structures before they are completed
 class Construction {
 public:
-
+	int id;
 	Vector2 pos;
 
 	std::array<int,MAX_TYPE> resources;
@@ -26,7 +34,7 @@ public:
 	int max_workers;
 	int current_workers;
 
-	Construction(Vector2 pos, std::array<int, MAX_TYPE> resources, int number_of_resources,float work, int max_workers);
+	Construction(int id, Vector2 pos, std::array<int, MAX_TYPE> resources, int number_of_resources,float work, int max_workers);
 
 	bool isAllDelivered();
 	bool hasWorkers();
@@ -36,6 +44,7 @@ public:
 
 class Stockpile {
 public:
+	int id;
 	Vector2 pos;
 	float r;
 
@@ -44,11 +53,10 @@ public:
 	int capacity;
 	int currently_stored;
 	int about_to_be_stored;
-	int stored_types[MAX_TYPE] = { 0 };
+	std::array<int, MAX_TYPE> stored_types = { 0 };
 
-	Stockpile(Vector2 pos, int cap, Construction* construction);
+	Stockpile(int id, Vector2 pos, int cap, Construction* construction);
 
-	int hasType(std::array<int, MAX_TYPE> types);
 	bool hasSpace();
 	bool isFull();
 	int spaceLeft();
@@ -57,16 +65,19 @@ public:
 
 class Resource {
 public:
+	int id;
 	Vector2 pos;
 	float r;
+
 	bool occupied;
 	int type;
 
-	Resource(Vector2 pos, int type);
+	Resource(int id, Vector2 pos, int type);
 };
 
 class Generator {
 public:
+	int id;
 	Vector2 pos;
 	float r;
 
@@ -85,7 +96,7 @@ public:
 
 	bool just_generated;
 
-	Generator(Vector2 pos, float r, int type, int remaining, float time_to_generate, float dispense_radius);
+	Generator(int id, Vector2 pos, float r, int type, int remaining, float time_to_generate, float dispense_radius);
 
 	void update(std::vector<Resource*>& resources);
 
@@ -113,6 +124,7 @@ enum class WORKER_STATES {
 
 class Worker {
 public:
+	int id;
 	Vector2 pos;
 	float r;
 	float speed;
@@ -120,38 +132,57 @@ public:
 	WORKER_STATES state;
 
 	int capacity;
-	int collected;
-	std::vector<int> collected_types;
 
-	int type_to_deliver;
+	std::vector<int> collected_types; // types picked up
+
+	std::vector<int> types_to_deliver; // types to pick up and deliver
+	std::queue<int> amount_to_take; // how many resources do we take from given stockpile
+
 
 	std::queue<Resource*> targeted_resources;
 	std::queue<Stockpile*> targeted_stockpiles;
 	Generator* targeted_generator;
-	Construction* targeted_construction;
+	std::queue<Construction*> targeted_constructions;
 
 
-	Worker(Vector2 pos, float speed);
+	Worker(int id, Vector2 pos, float speed);
 
 	void update(std::vector<Resource*>& resources, std::vector<Stockpile*> stockpiles, std::vector<Worker*> Workers,
 				std::vector<Generator*> generators, std::vector<Construction*> constructions);
 
 	void draw();
 
-	bool isFull();
+	// if is full
+	bool isFull();	
+
+	// if will be full after collecting everithing to deliver
+	bool isPacked();
+
+	void sortTargetedStockpilesQueue();
 
 	bool collectResources(std::vector<Resource*> resources, std::vector<Stockpile*> stockpiles, std::vector<Worker*> Workers);
 
-	bool deliverResourcesToConstruction(std::vector<Construction*> constructions, std::vector<Stockpile*> stockpiles, int& type);
+	bool deliverResourcesToConstructions(std::vector<Construction*> constructions, std::vector<Stockpile*> stockpiles);
 };
 
 Resource* findClosestResource(Vector2 point, std::vector<Resource*> resources, int type);
 
-Stockpile* findClosestStockpile(Vector2 point, std::vector<Stockpile*> stockpiles, int mode, int& return_type, std::array<int, MAX_TYPE> type);
+Stockpile* findClosestStockpile(Vector2 point, std::vector<Stockpile*> stockpiles, int mode, std::array<int, MAX_TYPE> &return_types, std::array<int, MAX_TYPE> type);
 
 Generator* findClosestGenerator(Vector2 point, std::vector<Generator*> generators, std::vector<Worker*> Workers);
 
-Construction* findClosestConstruction(Vector2 point, std::vector<Construction*> constructions, std::vector<Stockpile*> stockpiles);
+Construction* findClosestConstruction(Vector2 point, std::vector<Construction*> constructions, std::vector<Stockpile*> stockpiles,
+									  Stockpile* &new_targeted_stockpile, std::array<int, MAX_TYPE>& types);
 
 
 bool deleteResource(Resource* resource, std::vector<Resource*>& resources);
+
+std::array<int, MAX_TYPE> hasTypes(std::array<int, MAX_TYPE> stored_types, std::array<int, MAX_TYPE> types);
+
+bool hasType(std::array<int, MAX_TYPE> stored_types, int type);
+
+std::array<int, MAX_TYPE> arangeTypes(std::vector<int> types);
+
+int resourceCount(std::array<int, MAX_TYPE> stored_types);
+
+std::queue<int> cutToCapacity(std::array<int, MAX_TYPE> stored_types, int capacity);
