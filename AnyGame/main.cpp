@@ -5,9 +5,11 @@
 #include <ctime>
 
 
+
 Construction::Construction(int id, Vector2 pos, std::array<int, MAX_TYPE> resources, int number_of_resources, float work, int max_workers) :
 	id(id),pos(pos),resources(resources), about_to_be_resources(resources), number_of_resources(number_of_resources),
 	work(work), work_done(0.0f), max_workers(max_workers), current_workers(0) {};
+
 
 
 // checks if all resources are delivered
@@ -19,15 +21,21 @@ bool Construction::isAllDelivered(){
 	return cnt <= 0;
 }
 
+
+
 // checks if all work is done
 bool Construction::isCompleted() {
 	return work_done >= work;
 }
 
+
+
 // checks if there is any worker working on construction
 bool Construction::hasWorkers() {
 	return current_workers > 0;
 }
+
+
 
 // checks if all worker spots are occupied
 bool Construction::isFullyOccupied() {
@@ -35,20 +43,29 @@ bool Construction::isFullyOccupied() {
 }
 
 
+
 Stockpile::Stockpile(int id, Vector2 pos, int capacity, Construction* construction) :
 	id(id), pos(pos), r(40.0f), construction(construction), capacity(capacity), currently_stored(0), about_to_be_stored(0) {};
+
+
 
 bool Stockpile::hasSpace() {
 	return about_to_be_stored < capacity;
 }
 
+
+
 bool Stockpile::isFull() {
 	return currently_stored >= capacity;
 }
 
+
+
 int Stockpile::spaceLeft() {
 	return capacity - about_to_be_stored;
 }
+
+
 
 void Stockpile::draw() {
 	if (construction == nullptr) {
@@ -58,7 +75,6 @@ void Stockpile::draw() {
 		float piece = 360.0f * (1.0f / (float)capacity);
 		int drawn_pieces = 0;
 		for (int i = 0; i < MAX_TYPE; i++) {
-			//printf("drawn_pieces: %i\n", drawn_pieces);
 			DrawRing(pos, 0, r - 1, drawn_pieces * piece, (stored_types[i] + drawn_pieces) * piece, 0, type_color[i]);
 			drawn_pieces += stored_types[i];
 		}
@@ -70,16 +86,14 @@ void Stockpile::draw() {
 		DrawRing(pos, r - 2, r, 0, 360, 0, RED);
 		float piece = 360.0f * (1.0f / (float)construction->number_of_resources);
 		int drawn_pieces = 0;
-		//printf("piece: %i\n", construction->number_of_resources);
 		for (int i = 0; i < MAX_TYPE; i++) {		
 			DrawRing(pos, 0, r - 1, drawn_pieces * piece, (construction->resources[i] + drawn_pieces) * piece, 0, type_color[i]);
 			drawn_pieces += construction->resources[i];
-		}
-
-		
+		}	
 	}
-	
 }
+
+
 
 Resource::Resource(int id, Vector2 pos, int type) :
 	id(id), pos(pos), r(5.0f), occupied(false), type(type) {};
@@ -89,6 +103,7 @@ Resource::Resource(int id, Vector2 pos, int type) :
 Generator::Generator(int id, Vector2 pos, float r, int type, int max, float time_to_generate, float dispense_radius) :
 	id(id), pos(pos), r(r), type(type), max(max), remaining(max), operated(false), occupied(false),
 	time_operated(0.0f), time_to_generate(3.0f), dispense_radius(dispense_radius), just_generated(false) {};
+
 
 
 void Generator::update(std::vector<Resource*> &resources) {
@@ -105,6 +120,8 @@ void Generator::update(std::vector<Resource*> &resources) {
 	}
 }
 
+
+
 void Generator::draw() {
 	DrawRing(pos, 10, r, 0, 360, 0, DARKGRAY);
 	DrawRing(pos, 10, r, 0, (float)remaining / (float)max * 360.0f, 0, type_color[type]);
@@ -112,9 +129,12 @@ void Generator::draw() {
 	//DrawRectangleLines(pos.x - dispense_radius, pos.y - dispense_radius, 2 * dispense_radius, 2 * dispense_radius, RED);
 }
 
+
+
 bool Generator::isEmpty() {
 	return remaining <= 0;
 }
+
 
 
 Worker::Worker(int id, Vector2 pos, float speed) :
@@ -122,6 +142,8 @@ Worker::Worker(int id, Vector2 pos, float speed) :
 	types_to_deliver(std::vector<int>()), targeted_resources(std::queue<Resource*>()), targeted_stockpiles(std::queue<Stockpile*>()),
 	targeted_generator(nullptr), targeted_constructions(std::queue<Construction*>()) {
 };
+
+
 
 void Worker::draw() {
 	DrawRing(pos, 4 /*resource radius -1 so it overlaps and hides imperfections*/, r, 0, 360, 0, DARKGRAY);
@@ -132,20 +154,25 @@ void Worker::draw() {
 
 		for (int i = 0; i < collected_types.size(); i++) {
 			//DrawCircleV(pos, 5, type_color[collected_types[i]]);
-			DrawRing(pos, 0, 5/*Resource radius*/, i * piece, (i+1) * piece, 1, type_color[collected_types[i]]);
+			DrawRing(pos, 0, 5/*Resource radius*/, i * piece, (i + 1) * piece, 1, type_color[collected_types[i]]);
 		}
 	}
 	DrawText(("w: " + std::to_string(id)).c_str(), pos.x - 5, pos.y - r - 2, 15, RED);
-
 }
+
+
 
 bool Worker::isFull() {
 	return collected_types.size() >= capacity;
 }
 
+
+
 bool Worker::isPacked() {
 	return types_to_deliver.size() >= capacity;
 }
+
+
 
 // returns closest resource
 Resource* findClosestResource(Vector2 point, std::vector<Resource*> resources, int type) { //-1 if type is not important or number of type
@@ -160,33 +187,39 @@ Resource* findClosestResource(Vector2 point, std::vector<Resource*> resources, i
 	return result;
 }
 
+
+
 // returns closest non-full stockpile with same type or neutral type
 // mode defines if we take from or deliver to stockpile or if we are just looking for any stockpile: <0 any stockpile, 0 - deliver, >0 - take
 // types is an array containing amounts of types required by construction
 Stockpile* findClosestStockpile(Vector2 point, std::vector<Stockpile*> stockpiles, int mode,
-								std::array<int, MAX_TYPE> &return_types, std::array<int, MAX_TYPE> types = { 0 }) {
+	std::array<int, MAX_TYPE>& return_types, std::array<int, MAX_TYPE> types = { 0 }) {
 	float min_distance = -1.0f;
 	Stockpile* result = nullptr;
-	bool found = false;
-	for (Stockpile* s : stockpiles) {
-		std::array<int,MAX_TYPE> tmp = hasTypes(s->stored_types, types);
 
-		if (s->construction == nullptr && mode <= 0 && (s->hasSpace() || mode < 0)) { // delivering to or looking for any stockpile
-			found = true;
-		}
-		else if (s->construction == nullptr && mode > 0 && resourceCount(tmp) > 0) { // taking from stockpile
-			return_types = tmp;
-			found = true;
-		}
-		if (found && (min_distance == -1.0f || Vector2Distance(point, s->pos) < min_distance)) {
+	for (Stockpile* s : stockpiles) {
+		std::array<int, MAX_TYPE> tmp = hasTypes(s->stored_types, types);
+
+		if (s->construction == nullptr && mode <= 0 && (s->hasSpace() || mode < 0) && // delivering to or looking for any stockpile
+			(min_distance == -1.0f || Vector2Distance(point, s->pos) < min_distance)) {
 			min_distance = Vector2Distance(point, s->pos);
 			result = s;
-			found = false;
 		}
+		else if (s->construction == nullptr && mode > 0 && resourceCount(tmp) > 0 &&
+			(min_distance == -1.0f || Vector2Distance(point, s->pos) < min_distance)) { // taking from stockpile		
+			return_types = tmp;
+			min_distance = Vector2Distance(point, s->pos);
+			result = s;
+		}
+	}
+	if (mode > 0 && result != nullptr) {
+		printf("Found stockpile: %i\n", result->id);
 	}
 
 	return result;
 }
+
+
 
 Generator* findClosestGenerator(Vector2 point, std::vector<Generator*> generators, std::vector<Worker*> workers) {
 	float min_distance = -1.0f;
@@ -209,29 +242,39 @@ Generator* findClosestGenerator(Vector2 point, std::vector<Generator*> generator
 	return result;
 }
 
+
+// returns closest construction that can have some stored resources delivered or nullptr,
+// also returns closest stockpile that contains some of the resources that are needed and array of all needed resources
 Construction* findClosestConstruction(Vector2 point, std::vector<Construction*> constructions, std::vector<Stockpile*> stockpiles,
-										Stockpile* &new_targeted_stockpile, std::array<int,MAX_TYPE> &types) {
+	Stockpile*& new_targeted_stockpile, std::array<int, MAX_TYPE>& types) {
 
 	float min_distance = -1.0f;
 	Construction* result = nullptr;
 	for (Construction* c : constructions) {
-		if (!c->isAllDelivered() && (min_distance == -1.0f || Vector2Distance(point, c->pos) < min_distance)) {
-			new_targeted_stockpile = findClosestStockpile(point, stockpiles, 1 , types, c->about_to_be_resources);
-
-			/*printf("types: ");
-			for (int i = 0; i < MAX_TYPE; i++) {
-				printf("%i ", types[i]);
-			}
-			printf("\n");*/
-
-			if (new_targeted_stockpile != nullptr) {
-				min_distance = Vector2Distance(point, c->pos) < min_distance;
-				result = c;
-			}
+		if (!c->isAllDelivered() && (min_distance == -1.0f || Vector2Distance(point, c->pos) < min_distance) &&
+			(new_targeted_stockpile = findClosestStockpile(point, stockpiles, 1, types, c->about_to_be_resources)) != nullptr) {
+			
+			min_distance = Vector2Distance(point, c->pos) < min_distance;
+			result = c;
 		}
 	}
+
+	if (result != nullptr) {
+		printf("Sent in types :\n\t");
+		for (int i = 0; i < MAX_TYPE; i++) {
+			printf("%i, ", result->about_to_be_resources[i]);
+		}
+		printf("\nGot types:\n\t");
+		for (int i = 0; i < MAX_TYPE; i++) {
+			printf("%i, ",types[i]);
+		}
+	}
+
+
 	return result;
 }
+
+
 
 // rotates point position around center point by specified angle
 Vector2 rotateAroundPoint(Vector2 point, Vector2 center, float angleInRads) {
@@ -244,6 +287,8 @@ Vector2 rotateAroundPoint(Vector2 point, Vector2 center, float angleInRads) {
 
 	return Vector2Add(new_point, center);
 }
+
+
 
 // deletes resource from vector of resources
 bool deleteResource(Resource* resource, std::vector<Resource*>& resources) {
@@ -258,6 +303,8 @@ bool deleteResource(Resource* resource, std::vector<Resource*>& resources) {
 	return false;
 }
 
+
+
 std::array<int, MAX_TYPE> hasTypes(std::array<int, MAX_TYPE> stored_types, std::array<int, MAX_TYPE> types) {
 	std::array<int, MAX_TYPE> result = { 0 };
 	for (int i = 0; i < MAX_TYPE; i++) {
@@ -268,9 +315,13 @@ std::array<int, MAX_TYPE> hasTypes(std::array<int, MAX_TYPE> stored_types, std::
 	return result;
 }
 
+
+
 bool hasType(std::array<int, MAX_TYPE> stored_types, int type) {
 	return stored_types[type] > 0;
 }
+
+
 
 std::array<int, MAX_TYPE> arangeTypes(std::vector<int> types) {
 	std::array<int, MAX_TYPE> result = { 0 };
@@ -280,6 +331,8 @@ std::array<int, MAX_TYPE> arangeTypes(std::vector<int> types) {
 	return result;
 }
 
+
+
 int resourceCount(std::array<int, MAX_TYPE> stored_types) {
 	int result = 0;
 	for (int i = 0; i < MAX_TYPE; i++) {
@@ -287,6 +340,8 @@ int resourceCount(std::array<int, MAX_TYPE> stored_types) {
 	}
 	return result;
 }
+
+
 
 std::queue<int> cutToCapacity(std::array<int, MAX_TYPE> stored_types, int capacity) {
 	std::queue<int> result;
@@ -302,22 +357,8 @@ std::queue<int> cutToCapacity(std::array<int, MAX_TYPE> stored_types, int capaci
 }
 
 
-void Worker::sortTargetedStockpilesQueue() {
-	std::vector<Stockpile*> tmp = {};
-	while (!targeted_stockpiles.empty()) {
-		tmp.emplace_back(targeted_stockpiles.front());
-		targeted_stockpiles.pop();
-	}
-	std::sort(tmp.begin(), tmp.end(), [this](Stockpile*& a, Stockpile*& b) {
-		return Vector2Distance(pos, a->pos) > Vector2Distance(pos, b->pos);
-		});
-	for (Stockpile* s : tmp) {
-		targeted_stockpiles.push(s);
-	}
-}
 
 // if possible, sets all the necessary data for valid resource collection route
-// TODO add suport for capacity > 1
 bool Worker::collectResources(std::vector<Resource*> resources, std::vector<Stockpile*> stockpiles, std::vector<Worker*> workers) {
 	int found_resources = 0;
 
@@ -328,7 +369,6 @@ bool Worker::collectResources(std::vector<Resource*> resources, std::vector<Stoc
 	while (found_resources < capacity) {
 		if ((new_targeted_resource = findClosestResource(pos, resources, -1)) != nullptr) {
 			new_targeted_resource->occupied = true;
-			printf("found resource \n");
 			targeted_resources.push(new_targeted_resource);
 			lastPos = new_targeted_resource->pos;
 			found_resources++;
@@ -352,9 +392,11 @@ bool Worker::collectResources(std::vector<Resource*> resources, std::vector<Stoc
 	while (!tmp.empty()) {
 		std::array<int, MAX_TYPE> types = { 0 }; // useless
 		if ((new_targeted_stockpile = findClosestStockpile(lastPos, stockpiles, 0, types)) != nullptr) {
-			targeted_resources.push(tmp.front());		
-
-			new_targeted_stockpile->about_to_be_stored++;
+			while(!tmp.empty() && new_targeted_stockpile->hasSpace()) {
+				new_targeted_stockpile->about_to_be_stored++;
+				targeted_resources.push(tmp.front());
+				tmp.pop();
+			}
 
 			if (first) {
 				while (!targeted_stockpiles.empty()) {
@@ -364,56 +406,59 @@ bool Worker::collectResources(std::vector<Resource*> resources, std::vector<Stoc
 			}
 
 			if (targeted_stockpiles.empty() || new_targeted_stockpile != targeted_stockpiles.front()) {
-				printf("pushing new stockpile");
 				targeted_stockpiles.push(new_targeted_stockpile);
 			}	
 			new_targeted_stockpile = nullptr;
 			
 		}
 		else {
-			printf("no room in storage \n");
 			tmp.front()->occupied = false;
 			found_resources--;
+			tmp.pop();
 		}
-		tmp.pop();
 	}
 
 	return found_resources > 0;
 }
 
+
+// if possible, sets all the necessary data for valid resource delivery route to a construction
 bool Worker::deliverResourcesToConstructions(std::vector<Construction*> constructions, std::vector<Stockpile*> stockpiles) { 
 
 	Construction* new_targeted_construction = nullptr;
 	Stockpile* new_targeted_stockpile = nullptr;
 	std::array<int, MAX_TYPE> types = { 0 };
 
+	bool first = true;
+
 	while (!isPacked()) {
 
 		if ((new_targeted_construction = findClosestConstruction(pos, constructions, stockpiles, new_targeted_stockpile, types)) != nullptr &&
 			new_targeted_stockpile  != nullptr) {
 
-			
-
-			std::queue<int> types_to_pickup = cutToCapacity(types, capacity);
+			std::queue<int> types_to_pickup = cutToCapacity(types, capacity - types_to_deliver.size());
 			
 			if (targeted_constructions.empty() || targeted_constructions.front() != new_targeted_construction) {
 				targeted_constructions.push(new_targeted_construction);
 			}
 
+			if (first) {
+				while (!targeted_stockpiles.empty()) {
+					targeted_stockpiles.pop();
+				}
+				first = false;
+			}
+
 			targeted_stockpiles.push(new_targeted_stockpile);
+			printf("Found stockpile %i\n", new_targeted_stockpile->id);
 			amount_to_take.push(types_to_pickup.size());
 
 			while (!types_to_pickup.empty()) {
 				types_to_deliver.emplace_back(types_to_pickup.front());
 				new_targeted_construction->about_to_be_resources[types_to_pickup.front()]--;
+				new_targeted_stockpile->stored_types[types_to_pickup.front()]--;
 				types_to_pickup.pop();
 			}
-
-			printf("about_to_be_resources: ");
-			for (int i = 0; i < MAX_TYPE; i++) {
-				printf("%i ", new_targeted_construction->about_to_be_resources[i]);
-			}
-			printf("\n");
 
 		}
 		else {
@@ -435,64 +480,45 @@ void Worker::update(std::vector<Resource*> &resources, std::vector<Stockpile*> s
 	if (state == WORKER_STATES::IDLE) {
 		if (!targeted_stockpiles.empty()) {
 			if (deliverResourcesToConstructions(constructions,stockpiles)) {
+
+				//debug
+				printf("w%i delivery plan:\n",id);
+				
+				std::queue<Construction*> tmp_con = targeted_constructions;
+				printf("\tTargeted constructions:\n");
+				while (!tmp_con.empty()) {
+					printf("\t%i, ", tmp_con.front()->id);
+					tmp_con.pop();
+				}
+				std::queue<Stockpile*> tmp_sto = targeted_stockpiles;
+				std::queue<int> tmp_amo = amount_to_take;
+				printf("\n\tTargeted stockpiles:\n");
+				while (!tmp_sto.empty() && !tmp_amo.empty()) {
+					printf("\t%i : %i, ", tmp_sto.front()->id, tmp_amo.front());
+					tmp_amo.pop();
+					tmp_sto.pop();
+				}
+				printf("\n");
+				//
+
 				state = WORKER_STATES::TRANSPORTING;
 			}
 
-			else if (!collectResources(resources, stockpiles, workers)) {
-
-				//debug
-				std::queue<Stockpile*> tmp;
-				printf("Worker w%i targeted stockpiles:\n", id);
-				while (!targeted_stockpiles.empty()) {
-					printf("  %i  ", targeted_stockpiles.front()->id);
-					tmp.push(targeted_stockpiles.front());
-					targeted_stockpiles.pop();
-				}
-				printf("end\n");
-
-				while (!tmp.empty()) {
-					targeted_stockpiles.push(tmp.front());
-					tmp.pop();
-				}
-				//
-
-
-				targeted_generator = findClosestGenerator(pos, generators, workers);	
-				if (targeted_generator != nullptr) {
-					targeted_generator->occupied = true;
-					state = WORKER_STATES::GENERATING;
-				}
-				else if (Vector2Distance(pos, targeted_stockpiles.front()->pos) <= targeted_stockpiles.front()->r + r) {
-					pos = rotateAroundPoint(pos, targeted_stockpiles.front()->pos, 0.5f * GetFrameTime());
-				}
-				else {
-					pos = Vector2MoveTowards(pos, targeted_stockpiles.front()->pos, SPEED_MOD * speed * GetFrameTime());
-				}
+			else if (collectResources(resources, stockpiles, workers)) {
+				state = WORKER_STATES::COLLECTING;	
 			}
+
+			else if ((targeted_generator = findClosestGenerator(pos, generators, workers)) != nullptr) {
+				targeted_generator->occupied = true;
+				state = WORKER_STATES::GENERATING;
+			}
+
+			else if (Vector2Distance(pos, targeted_stockpiles.front()->pos) <= targeted_stockpiles.front()->r + r) {
+				pos = rotateAroundPoint(pos, targeted_stockpiles.front()->pos, 0.5f * GetFrameTime());
+			}
+
 			else {
-
-				////debug
-				//std::queue<Stockpile*> tmp;
-				//printf("Worker w%i targeted stockpiles:\n", id);
-				//while (!targeted_stockpiles.empty()) {
-				//	printf("  %i  ", targeted_stockpiles.front()->id);
-				//	tmp.push(targeted_stockpiles.front());
-				//	targeted_stockpiles.pop();
-				//}
-				//printf("\n");
-
-				//while (!tmp.empty()) {
-				//	targeted_stockpiles.push(tmp.front());
-				//	tmp.pop();
-				//}
-				//printf("Stockpile states:\n\t");
-				//for (Stockpile* s : stockpiles) {
-				//	printf("s%i : %i, ", s->id, s->about_to_be_stored);
-				//}
-				//printf("\n");
-				////
-
-				state = WORKER_STATES::COLLECTING;
+				pos = Vector2MoveTowards(pos, targeted_stockpiles.front()->pos, SPEED_MOD * speed * GetFrameTime());
 			}
 
 		}
@@ -511,7 +537,6 @@ void Worker::update(std::vector<Resource*> &resources, std::vector<Stockpile*> s
 				deleteResource(targeted_resources.front(), resources);
 				collected_types.emplace_back(targeted_resources.front()->type);
 				targeted_resources.pop();
-				
 			}
 			else
 			{
@@ -519,7 +544,7 @@ void Worker::update(std::vector<Resource*> &resources, std::vector<Stockpile*> s
 			}
 		}
 		else {
-			if (Vector2Distance(pos, targeted_stockpiles.front()->pos) <= targeted_stockpiles.front()->r + r) {
+			if (Vector2Distance(pos, targeted_stockpiles.front()->pos) <= targeted_stockpiles.front()->r + r) { // crashes here
 				
 				while (!collected_types.empty() && !targeted_stockpiles.front()->isFull()) {
 					targeted_stockpiles.front()->stored_types[collected_types.back()]++;
@@ -527,7 +552,7 @@ void Worker::update(std::vector<Resource*> &resources, std::vector<Stockpile*> s
 					collected_types.pop_back();
 				}
 				
-				if (!collected_types.empty() && /* not sure if necessary --> */ !targeted_stockpiles.empty()) {
+				if (targeted_stockpiles.size() > 1) {
 					targeted_stockpiles.pop();
 				}
 				else {
@@ -565,7 +590,7 @@ void Worker::update(std::vector<Resource*> &resources, std::vector<Stockpile*> s
 				//changes to stockpile
 				targeted_stockpiles.front()->about_to_be_stored--;
 				targeted_stockpiles.front()->currently_stored--;
-				targeted_stockpiles.front()->stored_types[types_to_deliver.front()]--;
+				//targeted_stockpiles.front()->stored_types[types_to_deliver.front()]--;
 
 				//changes to worker
 				collected_types.emplace_back(types_to_deliver.front());
@@ -582,12 +607,17 @@ void Worker::update(std::vector<Resource*> &resources, std::vector<Stockpile*> s
 		}
 		else {
 			if (Vector2Distance(pos, targeted_constructions.front()->pos) <= 5.0f) { // TODO fix distance parameter
-				if (hasType(targeted_constructions.front()->resources,collected_types.front())) {
-					targeted_constructions.front()->resources[collected_types.front()]--;
-					collected_types.erase(collected_types.begin());
+				bool found = false;
+				for (int i = 0; i < collected_types.size(); i++) {
+					if (hasType(targeted_constructions.front()->resources, collected_types[i])) {
+						targeted_constructions.front()->resources[collected_types[i]]--;
+						collected_types.erase(collected_types.begin() + i);
+						found = true;
+						break;
+					}
 				}
-				else
-				{
+				
+				if (!found) {
 					targeted_constructions.pop();
 				}
 				
@@ -604,6 +634,8 @@ void Worker::update(std::vector<Resource*> &resources, std::vector<Stockpile*> s
 	}
 
 }
+
+
 
 int main() {
 
@@ -704,10 +736,16 @@ int main() {
 		BeginDrawing();
 		ClearBackground(BLACK);
 
-		
-
 		for (Stockpile* s : stockpiles) {
 			s->draw();
+
+			/*if (!pause) {
+				printf("s%i stored resources:\n", s->id);
+				for (int i = 0; i < MAX_TYPE; i++) {
+					printf("%i ", s->stored_types[i]);
+				}
+				printf("\n");
+			}*/
 		}
 
 		for (Construction* c : constructions) {
@@ -732,7 +770,6 @@ int main() {
 			}			
 			g->draw();
 		}
-
 
 		for (Resource* res : resources) {
 			DrawCircleV(res->pos, res->r, type_color[res->type]);

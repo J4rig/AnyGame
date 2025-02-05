@@ -8,7 +8,7 @@
 
 #define SPEED_MOD 100
 
-#define WORKER_CAPACITY 3
+#define WORKER_CAPACITY 2
 
 int construction_id = 0;
 int stockpile_id = 0;
@@ -157,8 +157,6 @@ public:
 
 	// if will be full after collecting everithing to deliver
 	bool isPacked();
-
-	void sortTargetedStockpilesQueue();
 
 	bool collectResources(std::vector<Resource*> resources, std::vector<Stockpile*> stockpiles, std::vector<Worker*> Workers);
 
