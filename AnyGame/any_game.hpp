@@ -42,6 +42,12 @@ public:
 	bool isCompleted();
 };
 
+class Storage {
+public:
+	std::array<int, MAX_TYPE> is = { 0 };
+	std::array<int, MAX_TYPE> will_be = { 0 };
+};
+
 class Stockpile {
 public:
 	int id;
@@ -53,7 +59,7 @@ public:
 	int capacity;
 	int currently_stored;
 	int about_to_be_stored;
-	std::array<int, MAX_TYPE> stored_types = { 0 };
+	Storage* stored_types = new Storage();
 
 	Stockpile(int id, Vector2 pos, int cap, Construction* construction);
 
