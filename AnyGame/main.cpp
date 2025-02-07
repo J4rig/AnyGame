@@ -75,8 +75,8 @@ void Stockpile::draw() {
 		float piece = 360.0f * (1.0f / (float)capacity);
 		int drawn_pieces = 0;
 		for (int i = 0; i < MAX_TYPE; i++) {
-			DrawRing(pos, 0, r - 1, drawn_pieces * piece, (stored_types[i] + drawn_pieces) * piece, 0, type_color[i]);
-			drawn_pieces += stored_types[i];
+			DrawRing(pos, 0, r - 1, drawn_pieces * piece, (stored_types->is[i] + drawn_pieces) * piece, 0, type_color[i]);
+			drawn_pieces += stored_types->is[i];
 		}
 
 		DrawText((std::to_string(currently_stored) + "/" + std::to_string(capacity)).c_str(), pos.x - 10, pos.y, 10, WHITE);
@@ -198,7 +198,7 @@ Stockpile* findClosestStockpile(Vector2 point, std::vector<Stockpile*> stockpile
 	Stockpile* result = nullptr;
 
 	for (Stockpile* s : stockpiles) {
-		std::array<int, MAX_TYPE> tmp = hasTypes(s->stored_types, types);
+		std::array<int, MAX_TYPE> tmp = hasTypes(s->stored_types->will_be, types);
 
 		if (s->construction == nullptr && mode <= 0 && (s->hasSpace() || mode < 0) && // delivering to or looking for any stockpile
 			(min_distance == -1.0f || Vector2Distance(point, s->pos) < min_distance)) {
@@ -456,7 +456,7 @@ bool Worker::deliverResourcesToConstructions(std::vector<Construction*> construc
 			while (!types_to_pickup.empty()) {
 				types_to_deliver.emplace_back(types_to_pickup.front());
 				new_targeted_construction->about_to_be_resources[types_to_pickup.front()]--;
-				new_targeted_stockpile->stored_types[types_to_pickup.front()]--;
+				new_targeted_stockpile->stored_types->will_be[types_to_pickup.front()]--;
 				types_to_pickup.pop();
 			}
 
@@ -547,7 +547,8 @@ void Worker::update(std::vector<Resource*> &resources, std::vector<Stockpile*> s
 			if (Vector2Distance(pos, targeted_stockpiles.front()->pos) <= targeted_stockpiles.front()->r + r) { // crashes here
 				
 				while (!collected_types.empty() && !targeted_stockpiles.front()->isFull()) {
-					targeted_stockpiles.front()->stored_types[collected_types.back()]++;
+					targeted_stockpiles.front()->stored_types->is[collected_types.back()]++;
+					targeted_stockpiles.front()->stored_types->will_be[collected_types.back()]++;
 					targeted_stockpiles.front()->currently_stored++;
 					collected_types.pop_back();
 				}
@@ -590,7 +591,7 @@ void Worker::update(std::vector<Resource*> &resources, std::vector<Stockpile*> s
 				//changes to stockpile
 				targeted_stockpiles.front()->about_to_be_stored--;
 				targeted_stockpiles.front()->currently_stored--;
-				//targeted_stockpiles.front()->stored_types[types_to_deliver.front()]--;
+				targeted_stockpiles.front()->stored_types->is[types_to_deliver.front()]--;
 
 				//changes to worker
 				collected_types.emplace_back(types_to_deliver.front());
