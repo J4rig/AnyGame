@@ -142,8 +142,8 @@ public:
 	std::vector<int> collected_types; // types picked up
 
 	std::vector<int> types_to_deliver; // types to pick up and deliver
-	std::queue<int> amount_to_take; // how many resources do we take from given stockpile
-
+	std::queue<int> amount_to_take = std::queue<int>(); // how many resources does worker take from each stockpile
+	std::queue<int> amount_to_deliver = std::queue<int>(); // how many resources does worker deliver to each construction
 
 	std::queue<Resource*> targeted_resources;
 	std::queue<Stockpile*> targeted_stockpiles;
