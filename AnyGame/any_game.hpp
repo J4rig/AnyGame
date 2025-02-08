@@ -18,15 +18,32 @@ int generator_id = 0;
 
 Color type_color[MAX_TYPE] = { MAGENTA, DARKGREEN, DARKBLUE };
 
+class Storage {
+public:
+	int capacity;
+	int currently_stored;
+	int about_to_be_stored;
+
+	std::array<int, MAX_TYPE> is = { 0 };
+	std::array<int, MAX_TYPE> will_be = { 0 };
+	std::array<int, MAX_TYPE> can_be = { 0 };
+
+	bool hasSpace();
+	bool isFull();
+	int spaceLeft();
+};
+
 // class that holds information for structures before they are completed
 class Construction {
 public:
 	int id;
 	Vector2 pos;
 
-	std::array<int,MAX_TYPE> resources;
+	Storage* storage;
+
+	/*std::array<int,MAX_TYPE> resources;
 	std::array<int, MAX_TYPE> about_to_be_resources;
-	int number_of_resources;
+	int number_of_resources;*/
 
 	float work;
 	float work_done;
@@ -42,30 +59,18 @@ public:
 	bool isCompleted();
 };
 
-class Storage {
-public:
-	std::array<int, MAX_TYPE> is = { 0 };
-	std::array<int, MAX_TYPE> will_be = { 0 };
-};
-
 class Stockpile {
 public:
 	int id;
+
 	Vector2 pos;
 	float r;
 
 	Construction* construction;
+	Storage* storage;
 
-	int capacity;
-	int currently_stored;
-	int about_to_be_stored;
-	Storage* stored_types = new Storage();
+	Stockpile(int id, Vector2 pos, float r, Construction* construction, Storage* storage);
 
-	Stockpile(int id, Vector2 pos, int cap, Construction* construction);
-
-	bool hasSpace();
-	bool isFull();
-	int spaceLeft();
 	void draw();
 };
 

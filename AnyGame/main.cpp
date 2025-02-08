@@ -876,8 +876,6 @@ int main() {
 		for (Worker* w : workers) {
 			if (!pause) {
 				w->update(resources, stockpiles, workers, generators, constructions);
-				for (int j : w->collected_types) {
-				}
 			}
 			w->draw();
 			i++;
