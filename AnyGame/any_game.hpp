@@ -125,7 +125,9 @@ enum class WORKER_STATES {
 	IDLE = 0,
 	COLLECTING,
 	GENERATING,
-	TRANSPORTING
+	TRANSPORTING,
+	CONSTRUCTING,
+	REFINING
 };
 
 class Worker {
@@ -167,6 +169,8 @@ public:
 	bool collectResources(std::vector<Resource*> resources, std::vector<Stockpile*> stockpiles, std::vector<Worker*> Workers);
 
 	bool deliverResourcesToConstructions(std::vector<Construction*> constructions, std::vector<Stockpile*> stockpiles);
+
+	bool workOnConstruction(std::vector<Construction*> constructions);
 };
 
 Resource* findClosestResource(Vector2 point, std::vector<Resource*> resources, int type);
@@ -175,9 +179,10 @@ Stockpile* findClosestStockpile(Vector2 point, std::vector<Stockpile*> stockpile
 
 Generator* findClosestGenerator(Vector2 point, std::vector<Generator*> generators, std::vector<Worker*> Workers);
 
+Construction* findClosestConstructionToConstruct(Vector2 point, std::vector<Construction*> constructions);
+
 Construction* findClosestConstruction(Vector2 point, std::vector<Construction*> constructions, std::vector<Stockpile*> stockpiles,
 									  Stockpile* &new_targeted_stockpile, std::array<int, MAX_TYPE>& types);
-
 
 bool deleteResource(Resource* resource, std::vector<Resource*>& resources);
 
