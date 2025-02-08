@@ -83,7 +83,7 @@ void Stockpile::draw() {
 		DrawText((std::to_string(currently_stored) + "/" + std::to_string(capacity)).c_str(), pos.x - 10, pos.y, 10, WHITE);
 		DrawText(("s: " + std::to_string(id)).c_str(),pos.x-5,pos.y-r-2,15,RED);
 	}
-	else {
+	else if (!construction->isCompleted()){
 		DrawRing(pos, r - 2, r, 0, 360, 0, RED);
 		float piece = 360.0f * (1.0f / (float)construction->number_of_resources);
 		int drawn_pieces = 0;
@@ -91,6 +91,9 @@ void Stockpile::draw() {
 			DrawRing(pos, 0, r - 1, drawn_pieces * piece, (construction->resources[i] + drawn_pieces) * piece, 0, type_color[i]);
 			drawn_pieces += construction->resources[i];
 		}	
+	}
+	else {
+		DrawRing(pos, r - 2, r, 0, 360, 0, RED);
 	}
 }
 
@@ -813,6 +816,23 @@ int main() {
 		BeginDrawing();
 		ClearBackground(BLACK);
 
+		
+
+		int i = 0;
+		for (Construction* c : constructions) {
+			//printf("is all delivered: %i\n", c->isAllDelivered());
+			if (c->isCompleted() && !c->hasWorkers()) {
+				Construction* tmp = c;
+				constructions.erase(constructions.begin() + i);
+				delete(tmp);
+				tmp = nullptr;
+				continue;
+			}
+			
+			DrawText(("c: " + std::to_string(c->id)).c_str(), c->pos.x + 5, c->pos.y - 20 - 2, 15, RED);
+			i++;
+		}
+
 		for (Stockpile* s : stockpiles) {
 			s->draw();
 
@@ -827,22 +847,6 @@ int main() {
 			if (!found) {
 				s->construction = nullptr;
 			}
-		}
-
-		int i = 0;
-		for (Construction* c : constructions) {
-			//printf("is all delivered: %i\n", c->isAllDelivered());
-			if (c->isCompleted() && !c->hasWorkers()) {
-				Construction* tmp = c;
-				constructions.erase(constructions.begin() + i);
-				delete(tmp);
-				tmp = nullptr;
-				continue;
-			}
-			
-			//c->update();
-			DrawText(("c: " + std::to_string(c->id)).c_str(), c->pos.x + 5, c->pos.y - 20 - 2, 15, RED);
-			i++;
 		}
 
 		for (Generator* g : generators) {
