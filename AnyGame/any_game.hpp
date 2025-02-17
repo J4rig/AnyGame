@@ -12,6 +12,8 @@
 
 #define WORKER_CAPACITY 2
 
+#define MAX_PRIORITY 4
+
 using namespace std;
 
 int construction_id = 0;
@@ -152,7 +154,7 @@ public:
 
 	bool just_generated;
 
-	Generator(int id, Vector2 pos, float r, int type, int max, weak_ptr<Task> task, float dispense_radius);
+	Generator(int id, Vector2 pos, float r, int type, int max, float dispense_radius);
 
 	void draw();
 
@@ -161,17 +163,13 @@ public:
 	//void update(); // delete if isEmpty() else if just_genreated reset task
 };
 
+
+
 auto storage_cmp = [](shared_ptr<Storage> left, shared_ptr<Storage> right) {return left->priority > right->priority; };
 auto task_cmp = [](shared_ptr<Task > left, shared_ptr<Task> right) {return left->priority > right->priority; };
 
-/*
-		States:
-		0 - idle
-		1 - collecting - TODO - optimize - add an option to collect resources directly to constructions or processing units
-		2 - generating - TODO - optimize
-		3 - transporting - TODO - transports reources from a stockpile to a construction or a processing unit
-		4 - processing - TODO - operates a processor
-	*/
+
+
 enum class WORKER_STATES {
 	IDLE = 0,
 	COLLECTING,
@@ -224,6 +222,8 @@ public:
 
 	bool transportResources(StorageQueue storages);
 
+	bool completeTask(TaskQueue tasks);
+
 	//bool deliverResourcesToConstructions(vector<Construction*> constructions, vector<Stockpile*> stockpiles);
 
 	//bool workOnConstruction(vector<Construction*> constructions);
@@ -235,27 +235,22 @@ shared_ptr<Resource> findClosestResource(Vector2 point, vector<shared_ptr<Resour
 
 weak_ptr<Storage> findStorageToIdle(Vector2 point, StorageQueue storages);
 
+weak_ptr<Storage> findStorageToDeliver(Vector2 point, StorageQueue storages);
+
 weak_ptr<Storage> findStorageToStore(Vector2 point, StorageQueue storages,int type);
 
 weak_ptr<Storage> findStorageToTake(Vector2 point, StorageQueue storages, array<int, MAX_TYPE>& return_types, array<int, MAX_TYPE> wanted_types, int max_priority);
-//
-//weak_ptr<Task> findTask(Vector2 point, priority_queue<shared_ptr<Task>> tasks);
-//
-//Generator* findClosestGenerator(Vector2 point, vector<Generator*> generators, vector<Worker*> Workers);
-//
-//Construction* findClosestConstructionToConstruct(Vector2 point, vector<Construction*> constructions);
-//
-//Construction* findClosestConstruction(Vector2 point, vector<Construction*> constructions, vector<Stockpile*> stockpiles,
-//									  Stockpile* &new_targeted_stockpile, array<int, MAX_TYPE>& types);
-//
-//array<int, MAX_TYPE> hasTypes(array<int, MAX_TYPE> stored_types, array<int, MAX_TYPE> types);
-//
+
+weak_ptr<Task> findTask(Vector2 point, TaskQueue tasks);
+
+array<int, MAX_TYPE> hasTypes(array<int, MAX_TYPE> stored_types, array<int, MAX_TYPE> types);
+
 bool hasType(array<int, MAX_TYPE> stored_types, int type);
-//
-//array<int, MAX_TYPE> arangeTypes(vector<int> types);
-//
+
+array<int, MAX_TYPE> arangeTypes(vector<int> types);
+
 int resourceCount(array<int, MAX_TYPE> stored_types);
-//
+
 queue<int> cutToCapacity(array<int, MAX_TYPE> stored_types, int capacity);
 
 array<int, MAX_TYPE> canBeStored(StorageQueue storages);

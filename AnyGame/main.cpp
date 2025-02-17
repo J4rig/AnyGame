@@ -26,7 +26,10 @@ int Storage::aboutToBeStored() {
 }
 
 bool Storage::isFull(int type) {
-	return isStored() >= capacity || is[type] >= can_be[type];
+	if (type >= 0 && type < MAX_TYPE) {
+		return isStored() >= capacity || is[type] >= can_be[type];
+	}
+	return isStored() >= capacity;
 }
 
 bool Storage::hasSpace(int type) {
@@ -96,9 +99,9 @@ void Stockpile::draw() {
 			drawn_pieces += pieces;
 		}	
 	}
-	/*else {
+	else {
 		DrawRing(pos, r - 2, r, 0, 360, 0, RED);
-	}*/
+	}
 }
 
 
@@ -114,7 +117,7 @@ void Resource::draw() {
 
 
 
-Generator::Generator(int id, Vector2 pos, float r, int type, int max, weak_ptr<Task> task, float dispense_radius) :
+Generator::Generator(int id, Vector2 pos, float r, int type, int max, float dispense_radius) :
 	id(id), pos(pos), r(r), type(type), max(max), remaining(max), task(task), dispense_radius(dispense_radius), just_generated(false) {};
 
 
@@ -185,16 +188,6 @@ shared_ptr<Resource> findClosestResource(Vector2 point, vector<shared_ptr<Resour
 	return result;
 }
 
-array<int, MAX_TYPE> hasTypes(array<int, MAX_TYPE> stored_types, array<int, MAX_TYPE> types) {
-	array<int, MAX_TYPE> result = { 0 };
-	for (int i = 0; i < MAX_TYPE; i++) {
-		if (types[i] > 0 && stored_types[i] > 0) {
-			result[i] = min(types[i], stored_types[i]);
-		}
-	}
-	return result;
-}
-
 weak_ptr<Storage> findStorageToIdle(Vector2 point, StorageQueue storages) {
 	float min_distance = numeric_limits<float>::max();
 	float new_distance;
@@ -212,9 +205,7 @@ weak_ptr<Storage> findStorageToIdle(Vector2 point, StorageQueue storages) {
 	return result;
 }
 
-// returns closest non-full stockpile with same type or neutral type
-// mode defines if we take from or deliver to stockpile or if we are just looking for any stockpile: <0 any stockpile, 0 - deliver, >0 - take
-// types is an array containing amounts of types required by construction
+
 weak_ptr<Storage> findStorageToStore(Vector2 point, StorageQueue storages, int type) {
 
 	float min_distance = numeric_limits<float>::max();
@@ -236,6 +227,65 @@ weak_ptr<Storage> findStorageToStore(Vector2 point, StorageQueue storages, int t
 	return result;
 }
 
+weak_ptr<Storage> findStorageToDeliver(Vector2 point, StorageQueue storages) {
+	vector<shared_ptr<Storage>> found_storages = vector<shared_ptr<Storage>>();
+	StorageQueue s = storages;
+
+	array<array<int, MAX_TYPE>, MAX_PRIORITY> stored_resources = array<array<int, MAX_TYPE>, MAX_PRIORITY>();
+
+
+	while (!s.empty()) {
+		if (s.top()->priority >= MAX_PRIORITY) {
+			cout << "WARNING: max_priority exceeded\n";
+			s.top()->priority = MAX_PRIORITY - 1;
+		}
+
+		for (int i = 0; i < MAX_TYPE; i++) {
+			stored_resources[s.top()->priority][i] += s.top()->will_be[i];
+		}
+		found_storages.emplace_back(s.top());
+		s.pop();
+	}
+
+	sort(found_storages.begin(), found_storages.end(), [](shared_ptr<Storage> a, shared_ptr<Storage> b) {return a->priority > b->priority; });
+
+	for (int s = 0; s < found_storages.size(); s++) {
+		bool found = false;
+		for (int p = 0; p <= found_storages[s]->priority; p++) {
+			for (int i = 0; i < MAX_TYPE; i++) {
+				if (found_storages[s]->hasSpace(i) && stored_resources[p][i] > 0) {
+					found = true;
+					break; 
+				}			
+			}
+			if (found) {
+				break;
+			}
+		}
+		if (found) {
+			continue;
+		}
+		found_storages.erase(found_storages.begin() + s);
+		s--;
+	}
+
+	float min_distance = numeric_limits<float>::max();
+	float new_distance;
+
+	weak_ptr<Storage> result = weak_ptr<Storage>();
+
+	for (shared_ptr<Storage> s : found_storages) {
+		if (result.expired() || result.lock()->priority <= s->priority) {
+			if ((new_distance = min(Vector2Distance(point, s->pos), min_distance)) != min_distance || result.lock()->priority < s->priority) {
+				min_distance = new_distance;
+				result = s;
+			}
+		}
+	}
+
+	return result;
+}
+
 weak_ptr<Storage> findStorageToTake(Vector2 point, StorageQueue storages, array<int, MAX_TYPE>& return_types, array<int, MAX_TYPE> wanted_types, int max_priority) {
 	float min_distance = numeric_limits<float>::max();
 	float new_distance;
@@ -244,11 +294,11 @@ weak_ptr<Storage> findStorageToTake(Vector2 point, StorageQueue storages, array<
 
 	StorageQueue s = storages;
 	while (!s.empty()) {
-		if (s.top()->priority >= max_priority && !s.top()->can_take) {
+		if (s.top()->priority >= max_priority || !s.top()->can_take) {
 			s.pop();
 			continue;
 		}
-
+		// broken
 		std::array<int, MAX_TYPE> tmp = hasTypes(s.top()->will_be, wanted_types);
 		if (resourceCount(tmp) > 0 && (new_distance = min(Vector2Distance(point, s.top()->pos), min_distance)) != min_distance) {	
 			return_types = tmp;
@@ -261,25 +311,38 @@ weak_ptr<Storage> findStorageToTake(Vector2 point, StorageQueue storages, array<
 	return result;
 }
 
-//weak_ptr<Task> findTask(Vector2 point, priority_queue<shared_ptr<Task>> tasks) {
-//	float min_distance = numeric_limits<float>::max();
-//	float new_distance;
-//
-//	weak_ptr<Task> result = weak_ptr<Task>();
-//
-//	priority_queue<shared_ptr<Task>> t = tasks;
-//	while (!t.empty()) {
-//		if (!t.top()->isFullyOccupied() && (result.expired() || (*result.lock()).priority <= t.top()->priority)) {
-//			if ((new_distance = min(Vector2Distance(point, t.top()->pos), min_distance)) != min_distance) {
-//				min_distance = new_distance;
-//				result = t.top();
-//			}
-//		}
-//
-//		t.pop();
-//	}
-//	return result;
-//}
+weak_ptr<Task> findTask(Vector2 point, TaskQueue tasks) {
+	float min_distance = numeric_limits<float>::max();
+	float new_distance;
+
+	weak_ptr<Task> result = weak_ptr<Task>();
+
+	TaskQueue t = tasks;
+	while (!t.empty()) {
+		
+		if (!t.top()->isFullyOccupied() && !t.top()->isCompleted() && (result.expired() || result.lock()->priority <= t.top()->priority)) {
+			if ((new_distance = min(Vector2Distance(point, t.top()->pos), min_distance)) != min_distance) {
+				min_distance = new_distance;
+				result = t.top();
+			}
+		}
+
+		t.pop();
+	}
+	return result;
+}
+
+
+
+array<int, MAX_TYPE> hasTypes(array<int, MAX_TYPE> stored_types, array<int, MAX_TYPE> types) {
+	array<int, MAX_TYPE> result = { 0 };
+	for (int i = 0; i < MAX_TYPE; i++) {
+		if (types[i] > 0 && stored_types[i] > 0) {
+			result[i] = min(types[i], stored_types[i]);
+		}
+	}
+	return result;
+}
 
 
 
@@ -355,10 +418,6 @@ array<int, MAX_TYPE> canBeStored(StorageQueue storages) {
 bool Worker::collectResources(vector<shared_ptr<Resource>> resources, StorageQueue storages) {
 
 	array<int, MAX_TYPE> can_be_stored = canBeStored(storages);
-	/*for (int i = 0; i < MAX_TYPE; i++) {
-		cout << can_be_stored[i] << " ";
-	}
-	cout << "\n";*/
 
 	int found_resources = 0;
 
@@ -418,22 +477,19 @@ bool Worker::collectResources(vector<shared_ptr<Resource>> resources, StorageQue
 			tmp_resources.pop();
 		}
 	}
-
 	return found_resources > 0;
 }
 
 
 bool Worker::transportResources(StorageQueue storages) {
-
 	queue<weak_ptr<Storage>> deliver_queue = {};
 
 	bool first = true;
 	while (!isPacked()) {
-		shared_ptr<Storage> deliver_to = findStorageToStore(pos, storages, -1).lock();
+		shared_ptr<Storage> deliver_to = findStorageToDeliver(pos, storages).lock();
 		if (deliver_to == nullptr) {
 			break;
-		}
-
+		}	
 
 		array<int, MAX_TYPE> to_types = { 0 };
 
@@ -456,7 +512,7 @@ bool Worker::transportResources(StorageQueue storages) {
 			first = false;
 		}
 
-		if (targeted_storages.empty() || targeted_storages.front().lock()->id != take_from->id) {
+		if (targeted_storages.empty() || targeted_storages.front().lock() != take_from) {
 			targeted_storages.push(take_from);
 			amount_to_take.push(types_to_pickup.size());
 		}
@@ -490,32 +546,38 @@ bool Worker::transportResources(StorageQueue storages) {
 	return !types_to_deliver.empty();
 }
 
+bool Worker::completeTask(TaskQueue tasks) {
+	targeted_task = findTask(pos, tasks);
+	return !targeted_task.expired();
+}
+
 
 
 void Worker::update(vector<shared_ptr<Resource>> resources,
 	priority_queue<shared_ptr<Storage>, vector<shared_ptr<Storage>>, decltype(storage_cmp)> storages,
 	priority_queue<shared_ptr<Task>, vector<shared_ptr<Task>>, decltype(task_cmp)> tasks
 ) {
-
+	WORKER_STATES original = state;
 	if (state == WORKER_STATES::IDLE) {
-		if (!targeted_storages.empty()) {
-			/*if (workOnConstruction(constructions)) {
-				state = WORKER_STATES::CONSTRUCTING;
-			}*/
-			
+		if (!tasks.empty() && completeTask(tasks)) {
+			targeted_task.lock()->current_workers++;
+			state = WORKER_STATES::OPERATING;
+		}
 
+		else if (!targeted_storages.empty() && !targeted_storages.front().expired()) {
 			if (collectResources(resources, storages)) {
-				state = WORKER_STATES::COLLECTING;	
+				state = WORKER_STATES::COLLECTING;
+
 			}
 
 			else if (transportResources(storages)) {
 				state = WORKER_STATES::TRANSPORTING;
 			}
 
-			/*else if ((targeted_generator = findClosestGenerator(pos, generators, workers)) != nullptr) {
-				targeted_generator->occupied = true;
-				state = WORKER_STATES::GENERATING;
-			}*/
+			//todo make prettier
+			else if (Vector2Distance(pos, targeted_storages.front().lock()->pos) <= 1.0f) {
+				pos = Vector2Add(targeted_storages.front().lock()->pos, {50.0f,0.0f});
+			}
 			
 			else if (Vector2Distance(pos, targeted_storages.front().lock()->pos) <= 40 + 10) {
 				pos = rotateAroundPoint(pos, targeted_storages.front().lock()->pos, 0.5f * GetFrameTime());
@@ -527,6 +589,10 @@ void Worker::update(vector<shared_ptr<Resource>> resources,
 
 		}
 		else {
+			if (!targeted_storages.empty() && targeted_storages.front().expired()) {
+				targeted_storages.pop();
+			}
+
 			weak_ptr<Storage> tmp = findStorageToIdle(pos, storages);
 			if (!tmp.expired()) {
 				targeted_storages.push(tmp);
@@ -572,16 +638,19 @@ void Worker::update(vector<shared_ptr<Resource>> resources,
 	else if (state == WORKER_STATES::TRANSPORTING) {
 		if (!types_to_deliver.empty()) {
 			if (Vector2Distance(pos, targeted_storages.front().lock()->pos) <= 40 + 10) {
-				//changes to stockpile
-				targeted_storages.front().lock()->is[types_to_deliver.front()]--;
+				if (targeted_storages.front().lock()->is[types_to_deliver.front()] > 0) {
+					targeted_storages.front().lock()->is[types_to_deliver.front()]--;
 
-				//changes to worker
-				collected_types.emplace_back(types_to_deliver.front());
-				types_to_deliver.erase(types_to_deliver.begin());
-				amount_to_take.front()--;
-				if (amount_to_take.front() <= 0) {
-					targeted_storages.pop();
-					amount_to_take.pop();
+					collected_types.emplace_back(types_to_deliver.front());
+					types_to_deliver.erase(types_to_deliver.begin());
+					amount_to_take.front()--;
+					if (amount_to_take.front() <= 0) {
+						targeted_storages.pop();
+						amount_to_take.pop();
+					}
+				}
+				else{ // waiting for resorce to be delivered
+					pos = rotateAroundPoint(pos, targeted_storages.front().lock()->pos, 0.5f * GetFrameTime());
 				}
 			}
 			else {
@@ -595,7 +664,6 @@ void Worker::update(vector<shared_ptr<Resource>> resources,
 					targeted_storages.front().lock()->is[collected_types.front()]++;
 					collected_types.erase(collected_types.begin());
 					amount_to_deliver.front()--;
-					
 				}
 
 				amount_to_deliver.pop();
@@ -612,27 +680,25 @@ void Worker::update(vector<shared_ptr<Resource>> resources,
 		}
 	}
 
-	//else if (state == WORKER_STATES::CONSTRUCTING) {
-	//	if (!targeted_constructions.front()->isCompleted()) {
-	//		if (Vector2Distance(pos, targeted_constructions.front()->pos) <= 5.0f) { // TODO fix distance parameter
+	else if (state == WORKER_STATES::OPERATING) {
+		if (!targeted_task.lock()->isCompleted()) {
+			if (Vector2Distance(pos, targeted_task.lock()->pos) <= 0.5f) { // TODO fix distance parameter
 
-	//			targeted_constructions.front()->work_done += GetFrameTime();
+				targeted_task.lock()->work_done += GetFrameTime();
 
-	//			//rotateAroundPoint(pos, targeted_constructions.front()->pos, 0.5f * GetFrameTime());
+				//rotateAroundPoint(pos, targeted_constructions.front()->pos, 0.5f * GetFrameTime());
 
-	//		}
-	//		else {
-	//			pos = Vector2MoveTowards(pos, targeted_constructions.front()->pos, SPEED_MOD * speed * GetFrameTime());
-	//		}
-	//	}
-	//	else {
-	//		targeted_constructions.front()->current_workers--;
-	//		targeted_constructions.pop();
-	//		state = WORKER_STATES::IDLE;
-	//	}
-	//	
-	//}
-
+			}
+			else {
+				pos = Vector2MoveTowards(pos, targeted_task.lock()->pos, SPEED_MOD * speed * GetFrameTime());
+			}
+		}
+		else {
+			targeted_task.lock()->current_workers--;
+			state = WORKER_STATES::IDLE;
+		}
+		
+	}
 }
 
 
@@ -714,16 +780,16 @@ int main() {
 
 		if (IsKeyReleased(KEY_G)) {
 			Vector2 mouse_pos = GetMousePosition();
-
-			shared_ptr<Task> new_task = make_shared<Task>(task_id++, mouse_pos, rand() % 3, 5.0f,1);
-			tasks.push(new_task);
-			generators.emplace_back(make_shared<Generator>(generator_id++, mouse_pos, 20, rand() % 3, 3, new_task, 30));
+			generators.emplace_back(make_shared<Generator>(generator_id++, mouse_pos, 20, rand() % 3, 3, 30));
 		}
 
 		if (IsKeyPressed(KEY_C)) {
 			Vector2 mouse_pos = GetMousePosition();
 
-			std::array<int, MAX_TYPE> tmp = { 1,1,1 };
+			std::array<int, MAX_TYPE> tmp = { 0 };
+			tmp[0] = 1;
+			tmp[1] = 1;
+			tmp[2] = 1;
 			shared_ptr<Storage> s = make_shared<Storage>(storage_id++, mouse_pos, 2, 3, tmp, false);
 			storages.push(s);
 			shared_ptr<Construction> c = make_shared<Construction>(construction_id++,mouse_pos,s,weak_ptr<Task>());
@@ -744,26 +810,39 @@ int main() {
 		BeginDrawing();
 		ClearBackground(BLACK);
 
-		int i = 0;
 		for (shared_ptr<Stockpile> s : stockpiles) {
+			if (s->construction.expired() && s->storage.expired()) {
+				array<int, MAX_TYPE> limits = { 10, 10, 10 };
+
+				shared_ptr<Storage> new_storage = make_shared<Storage>(storage_id++, s->pos, 1, 10, limits, true);
+				storages.push(new_storage);
+				s->storage = new_storage;
+			}
 			s->draw();
 		}
 
-		for (shared_ptr<Generator> g : generators) {
-			g->draw();
+		for (int g = 0; g < generators.size(); g++) {
+
+			if (generators[g]->task.expired() && !generators[g]->isEmpty()) {
+				shared_ptr<Task> new_task = make_shared<Task>(task_id++, generators[g]->pos, 0, 5.0f, 1);
+				tasks.push(new_task);
+				generators[g]->task = new_task;
+			}
+
+			if (generators[g]->task.lock()->isCompleted()) {
+				generators[g]->remaining--;
+				resources.emplace_back(make_shared<Resource>(resource_id++,Vector2Add(generators[g]->pos, {(float)(rand() % 60 -30),(float)(rand() % 60 -30)} ), generators[g]->type));
+			}
+
+			if (generators[g]->isEmpty()) {
+				generators.erase(generators.begin() + g);
+				g--;
+			}
+			else {
+				generators[g]->draw();
+			}
 		}
 
-		/*StorageQueue sq = storages;
-		while (!sq.empty()) {
-			cout << sq.top()->id << ": ";
-			for (int i = 0; i < MAX_TYPE; i++) {
-				cout << sq.top()->is[i] << " ";
-			}
-			cout << "\n";
-			sq.pop();
-		}*/
-
-		i = 0;
 		for (int res = 0; res < resources.size(); res++) {
 			if (resources[res]->taken) {
 				resources.erase(resources.begin() + res);
@@ -774,13 +853,48 @@ int main() {
 			}
 		}
 
-		i = 0;
 		for (shared_ptr<Worker> w : workers) {
 			if (!pause) {
 				w->update(resources, storages, tasks);
 			}
 			w->draw();
-			i++;
+		}
+
+		//todo change queue to vector
+		TaskQueue tmp = tasks;
+		while (!tasks.empty()) {
+			tasks.pop();
+		}
+		while (!tmp.empty()) {
+			if (!tmp.top()->isCompleted() || tmp.top()->hasWorkers() > 0) {
+				tasks.push(tmp.top());
+			}
+			tmp.pop();
+		}
+
+		for (int c = 0; c < constructions.size(); c++) {
+			if (!constructions[c]->task.expired() && constructions[c]->task.lock()->isCompleted()) {		
+				constructions.erase(constructions.begin() + c);
+				c--;
+				continue;
+			}
+			
+			if (!constructions[c]->storage.expired() && constructions[c]->storage.lock()->isFull(-1) && !constructions[c]->is_all_delivered) {
+				constructions[c]->is_all_delivered = true;
+				StorageQueue tmp = storages;
+				while (!storages.empty()) {
+					storages.pop();
+				}
+				while (!tmp.empty()) {
+					if (tmp.top() != constructions[c]->storage.lock()) {
+						storages.push(tmp.top());
+					}
+					tmp.pop();
+				}
+				shared_ptr<Task> new_task = make_shared<Task>(task_id++, constructions[c]->pos, 1, 5.0f, 2);
+				tasks.push(new_task);
+				constructions[c]->task = new_task;
+			}
 		}
 
 		EndDrawing();
