@@ -1,8 +1,10 @@
 #include <raylib.h>
 #include <raymath.h>
+
 #include <vector>
 #include <queue>
 #include <array>
+#include <memory>
 
 #define MAX_TYPE 3
 
@@ -10,76 +12,130 @@
 
 #define WORKER_CAPACITY 2
 
+#define MAX_PRIORITY 4
+
+using namespace std;
+
 int construction_id = 0;
 int stockpile_id = 0;
 int resource_id = 0;
 int worker_id = 0;
 int generator_id = 0;
 
+int storage_id = 0;
+int task_id = 0;
+
 Color type_color[MAX_TYPE] = { MAGENTA, DARKGREEN, DARKBLUE };
 
-// class that holds information for structures before they are completed
-class Construction {
+
+
+// class that stores resources
+class Storage {
 public:
 	int id;
+
 	Vector2 pos;
 
-	std::array<int,MAX_TYPE> resources;
-	std::array<int, MAX_TYPE> about_to_be_resources;
-	int number_of_resources;
+	int priority;
 
-	float work;
-	float work_done;
+	int capacity;
+
+	bool can_take;
+
+	array<int, MAX_TYPE> is = { 0 };
+	array<int, MAX_TYPE> will_be = { 0 };
+	array<int, MAX_TYPE> can_be = { 0 };
+
+	Storage(int id, Vector2 pos, int priority, int capacity, array<int, MAX_TYPE> limits, bool can_take);
+
+	int isStored();
+	int aboutToBeStored();
+
+	bool isFull(int type);
+	bool hasSpace(int type);
+	int spaceLeft(int type);
+};
+
+
+
+// class that stores progres done on various operations
+class Task {
+public:
+	int id;
+
+	Vector2 pos;
+
+	int priority;
+
+	float work_to_do;
+	float work_done = 0.0f;
 
 	int max_workers;
-	int current_workers;
+	int current_workers = 0;
 
-	Construction(int id, Vector2 pos, std::array<int, MAX_TYPE> resources, int number_of_resources,float work, int max_workers);
+	Task(int id, Vector2 pos, int priority, float work_to_do, int max_workers);
 
-	bool isAllDelivered();
 	bool hasWorkers();
 	bool isFullyOccupied();
 	bool isCompleted();
 };
 
-class Storage {
+
+
+//class that holds information for structures before they are completed
+class Construction {
 public:
-	std::array<int, MAX_TYPE> is = { 0 };
-	std::array<int, MAX_TYPE> will_be = { 0 };
+	int id;
+	Vector2 pos;
+
+	bool is_all_delivered = false;
+	weak_ptr<Storage> storage;
+
+	weak_ptr<Task> task;
+
+	Construction(int id, Vector2 pos, weak_ptr<Storage> storage, weak_ptr<Task> task);
+
+	//void update(); // if storage is full creeates task if task is completed deletes self
 };
+
+
 
 class Stockpile {
 public:
 	int id;
+
 	Vector2 pos;
 	float r;
 
-	Construction* construction;
+	weak_ptr<Construction> construction;
+	weak_ptr<Storage> storage;
 
-	int capacity;
-	int currently_stored;
-	int about_to_be_stored;
-	Storage* stored_types = new Storage();
+	Stockpile(int id, Vector2 pos, float r, weak_ptr < Construction> construction, weak_ptr <Storage> storage);
 
-	Stockpile(int id, Vector2 pos, int cap, Construction* construction);
-
-	bool hasSpace();
-	bool isFull();
-	int spaceLeft();
 	void draw();
 };
+
+
 
 class Resource {
 public:
 	int id;
 	Vector2 pos;
-	float r;
+	float r = 5.0f;
 
-	bool occupied;
 	int type;
 
+	bool occupied = false;
+	bool taken = false;
+
 	Resource(int id, Vector2 pos, int type);
+
+	void draw();
+
+	//void update(); // delete if taken
 };
+
+
 
 class Generator {
 public:
@@ -92,106 +148,109 @@ public:
 	int max;
 	int remaining;
 
-	bool operated; //true if worker is already on site
-	bool occupied; //true if worker is moving on site
-
-	float time_operated;
-	float time_to_generate;
+	weak_ptr<Task> task;
 
 	float dispense_radius;
 
 	bool just_generated;
 
-	Generator(int id, Vector2 pos, float r, int type, int remaining, float time_to_generate, float dispense_radius);
-
-	void update(std::vector<Resource*>& resources);
+	Generator(int id, Vector2 pos, float r, int type, int max, float dispense_radius);
 
 	void draw();
 
 	bool isEmpty();
+
+	//void update(); // delete if isEmpty() else if just_genreated reset task
 };
 
 
-/*
-		States:
-		0 - idle
-		1 - collecting - TODO - optimize - add an option to collect resources directly to constructions or processing units
-		2 - generating - TODO - optimize
-		3 - transporting - TODO - transports reources from a stockpile to a construction or a processing unit
-		4 - processing - TODO - operates a processor
-	*/
+
+auto storage_cmp = [](shared_ptr<Storage> left, shared_ptr<Storage> right) {return left->priority > right->priority; };
+auto task_cmp = [](shared_ptr<Task > left, shared_ptr<Task> right) {return left->priority > right->priority; };
+
+
 
 enum class WORKER_STATES {
 	IDLE = 0,
 	COLLECTING,
-	GENERATING,
 	TRANSPORTING,
-	CONSTRUCTING,
-	REFINING
+	OPERATING
 };
+
+typedef priority_queue<shared_ptr<Storage>, vector<shared_ptr<Storage>>, decltype(storage_cmp)> StorageQueue;
+typedef priority_queue<shared_ptr<Task>, vector<shared_ptr<Task>>, decltype(task_cmp)> TaskQueue;
 
 class Worker {
 public:
 	int id;
 	Vector2 pos;
-	float r;
+	float r = 10.0f;
 	float speed;
 
-	WORKER_STATES state;
+	WORKER_STATES state = WORKER_STATES::IDLE;
 
 	int capacity;
 
-	std::vector<int> collected_types; // types picked up
+	vector<int> collected_types; // types picked up
 
-	std::vector<int> types_to_deliver; // types to pick up and deliver
-	std::queue<int> amount_to_take = std::queue<int>(); // how many resources does worker take from each stockpile
-	std::queue<int> amount_to_deliver = std::queue<int>(); // how many resources does worker deliver to each construction
+	vector<int> types_to_deliver; // types to pick up and deliver
+	queue<int> amount_to_take = queue<int>(); // how many resources does worker take from each stockpile
+	queue<int> amount_to_deliver = queue<int>(); // how many resources does worker deliver to each construction
 
-	std::queue<Resource*> targeted_resources;
-	std::queue<Stockpile*> targeted_stockpiles;
-	Generator* targeted_generator;
-	std::queue<Construction*> targeted_constructions;
-
+	queue<weak_ptr<Resource>> targeted_resources;
+	queue<weak_ptr<Storage>> targeted_storages;
+	weak_ptr<Task> targeted_task;
 
 	Worker(int id, Vector2 pos, float speed);
 
-	void update(std::vector<Resource*>& resources, std::vector<Stockpile*> stockpiles, std::vector<Worker*> Workers,
-				std::vector<Generator*> generators, std::vector<Construction*> constructions);
+	void update(vector<shared_ptr<Resource>> resources,
+		priority_queue<shared_ptr<Storage>, vector<shared_ptr<Storage>>, decltype(storage_cmp)> storages,
+		priority_queue<shared_ptr<Task>, vector<shared_ptr<Task>>, decltype(task_cmp)> tasks
+		);
 
 	void draw();
 
-	// if is full
+	//if is full
 	bool isFull();	
 
-	// if will be full after collecting everithing to deliver
+	//if will be full after collecting everithing to deliver
 	bool isPacked();
 
-	bool collectResources(std::vector<Resource*> resources, std::vector<Stockpile*> stockpiles, std::vector<Worker*> Workers);
 
-	bool deliverResourcesToConstructions(std::vector<Construction*> constructions, std::vector<Stockpile*> stockpiles);
+	// if possible, sets all the necessary data for valid resource collection route
+	bool collectResources(vector<shared_ptr<Resource>> resources, StorageQueue storages);
 
-	bool workOnConstruction(std::vector<Construction*> constructions);
+	bool transportResources(StorageQueue storages);
+
+	bool completeTask(TaskQueue tasks);
+
+	//bool deliverResourcesToConstructions(vector<Construction*> constructions, vector<Stockpile*> stockpiles);
+
+	//bool workOnConstruction(vector<Construction*> constructions);
 };
 
-Resource* findClosestResource(Vector2 point, std::vector<Resource*> resources, int type);
+Vector2 rotateAroundPoint(Vector2 point, Vector2 center, float angleInRads);
 
-Stockpile* findClosestStockpile(Vector2 point, std::vector<Stockpile*> stockpiles, int mode, std::array<int, MAX_TYPE> &return_types, std::array<int, MAX_TYPE> type);
+shared_ptr<Resource> findClosestResource(Vector2 point, vector<shared_ptr<Resource>> resources, array<int,MAX_TYPE> valid_types);
 
-Generator* findClosestGenerator(Vector2 point, std::vector<Generator*> generators, std::vector<Worker*> Workers);
+weak_ptr<Storage> findStorageToIdle(Vector2 point, StorageQueue storages);
 
-Construction* findClosestConstructionToConstruct(Vector2 point, std::vector<Construction*> constructions);
+weak_ptr<Storage> findStorageToDeliver(Vector2 point, StorageQueue storages);
 
-Construction* findClosestConstruction(Vector2 point, std::vector<Construction*> constructions, std::vector<Stockpile*> stockpiles,
-									  Stockpile* &new_targeted_stockpile, std::array<int, MAX_TYPE>& types);
+weak_ptr<Storage> findStorageToStore(Vector2 point, StorageQueue storages,int type);
 
-bool deleteResource(Resource* resource, std::vector<Resource*>& resources);
+weak_ptr<Storage> findStorageToTake(Vector2 point, StorageQueue storages, array<int, MAX_TYPE>& return_types, array<int, MAX_TYPE> wanted_types, int max_priority);
 
-std::array<int, MAX_TYPE> hasTypes(std::array<int, MAX_TYPE> stored_types, std::array<int, MAX_TYPE> types);
+weak_ptr<Task> findTask(Vector2 point, TaskQueue tasks);
 
-bool hasType(std::array<int, MAX_TYPE> stored_types, int type);
+array<int, MAX_TYPE> hasTypes(array<int, MAX_TYPE> stored_types, array<int, MAX_TYPE> types);
 
-std::array<int, MAX_TYPE> arangeTypes(std::vector<int> types);
+bool hasType(array<int, MAX_TYPE> stored_types, int type);
 
-int resourceCount(std::array<int, MAX_TYPE> stored_types);
+array<int, MAX_TYPE> arangeTypes(vector<int> types);
 
-std::queue<int> cutToCapacity(std::array<int, MAX_TYPE> stored_types, int capacity);
+int resourceCount(array<int, MAX_TYPE> stored_types);
+
+queue<int> cutToCapacity(array<int, MAX_TYPE> stored_types, int capacity);
+
+array<int, MAX_TYPE> canBeStored(StorageQueue storages);
