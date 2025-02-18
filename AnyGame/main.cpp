@@ -39,6 +39,15 @@ bool Storage::hasSpace(int type) {
 	return aboutToBeStored() < capacity;
 }
 
+bool Storage::hasSpace(vector<int> types) {
+	for (int type : types) {
+		if (aboutToBeStored() < capacity && will_be[type] < can_be[type]) {
+			return true;
+		}
+	}
+	return false;
+}
+
 int Storage::spaceLeft(int type) {
 	return min(capacity - aboutToBeStored(), can_be[type] - will_be[type]);
 }
@@ -157,10 +166,7 @@ void Forge::draw() {
 
 
 Worker::Worker(int id, Vector2 pos, float speed) :
-	id(id), pos(pos), speed(speed), capacity(WORKER_CAPACITY), collected_types(vector<int>()), types_to_deliver(vector<int>()),
-	targeted_resources(queue<weak_ptr<Resource>>()), targeted_storages(queue<weak_ptr<Storage>>()), targeted_task(weak_ptr<Task>()) {
-};
-
+	id(id), pos(pos), speed(speed) {};
 
 
 void Worker::draw() {
@@ -221,7 +227,7 @@ weak_ptr<Storage> findStorageToIdle(Vector2 point, vector<shared_ptr<Storage>> s
 }
 
 
-weak_ptr<Storage> findStorageToStore(Vector2 point, vector<shared_ptr<Storage>> storages, int type) {
+weak_ptr<Storage> findStorageToStore(Vector2 point, vector<shared_ptr<Storage>> storages, vector<int> types) {
 
 	float min_distance = numeric_limits<float>::max();
 	float new_distance;
@@ -229,7 +235,7 @@ weak_ptr<Storage> findStorageToStore(Vector2 point, vector<shared_ptr<Storage>> 
 	weak_ptr<Storage> result = weak_ptr<Storage>();
 
 	for (shared_ptr<Storage> s : storages) {
-		if (s->hasSpace(type) && (result.expired() || result.lock()->priority <= s->priority)) {
+		if (s->hasSpace(types) && (result.expired() || result.lock()->priority <= s->priority)) {
 			if ((new_distance = min(Vector2Distance(point, s->pos), min_distance)) != min_distance || result.lock()->priority < s->priority) {
 				min_distance = new_distance;
 				result = s;
@@ -442,7 +448,7 @@ bool Worker::collectResources(vector<shared_ptr<Resource>> resources, vector<sha
 	while (found_resources < capacity) {
 		if ((new_targeted_resource = findClosestResource(pos, resources, can_be_stored)) != nullptr) {
 			new_targeted_resource->occupied = true;
-			targeted_resources.push(new_targeted_resource);
+			targeted_resources.emplace_back(new_targeted_resource);
 			lastPos = new_targeted_resource->pos;
 			can_be_stored[new_targeted_resource->type]--;
 			found_resources++;
@@ -453,39 +459,47 @@ bool Worker::collectResources(vector<shared_ptr<Resource>> resources, vector<sha
 		}
 	}
 
-	queue<weak_ptr<Resource>> tmp_resources = queue<weak_ptr<Resource>>();
-	while (!targeted_resources.empty()) {
-		tmp_resources.push(targeted_resources.front().lock());
-		targeted_resources.pop();
-	}
 
 	weak_ptr<Storage> new_targeted_storage = weak_ptr<Storage>();
 
 	bool first = true;
 
+	vector<int> types = {};
+	for (weak_ptr<Resource> r : targeted_resources) {
+		types.emplace_back(r.lock()->type);
+	}
+
+	vector<weak_ptr<Resource>> tmp_resources = targeted_resources;
+	targeted_resources = {};
+
 	while (!tmp_resources.empty()) {
-		new_targeted_storage = findStorageToStore(lastPos, storages, tmp_resources.front().lock()->type);
+		new_targeted_storage = findStorageToStore(lastPos, storages, types);
 		if (!new_targeted_storage.expired()) {
-			if (!tmp_resources.empty() && new_targeted_storage.lock()->hasSpace(tmp_resources.front().lock()->type)) {
-				new_targeted_storage.lock()->will_be[tmp_resources.front().lock()->type]++;
-				targeted_resources.push(tmp_resources.front());
-				tmp_resources.pop();
-			}
+			for (int r = 0; r < tmp_resources.size(); r++) {
+				if (new_targeted_storage.lock()->hasSpace(tmp_resources[r].lock()->type)) {
+					new_targeted_storage.lock()->will_be[tmp_resources.front().lock()->type]++;
+					targeted_resources.emplace_back(tmp_resources[r]);
+					tmp_resources.erase(tmp_resources.begin() + r);
+					types.erase(types.begin() + r);
+					r--;
 
-			if (first) {
-				while (!targeted_storages.empty()) {
-					targeted_storages.pop();
+					if (first) {
+						while (!targeted_storages.empty()) {
+							targeted_storages.pop();
+						}
+						first = false;
+					}
+
+					if (targeted_storages.empty() || new_targeted_storage.lock() != targeted_storages.front().lock()) {
+						amount_to_deliver.push(1);
+						cout << "found new storage: " << new_targeted_storage.lock()->id << " <-id\n";
+						targeted_storages.push(new_targeted_storage);
+					}
+					else {
+						amount_to_deliver.front()++;
+					}
+
 				}
-				first = false;
-			}
-
-			if (targeted_storages.empty() || new_targeted_storage.lock() != targeted_storages.front().lock()) {
-				amount_to_deliver.push(1);
-				cout << "found new storage: " << new_targeted_storage.lock()->id << " <-id\n";
-				targeted_storages.push(new_targeted_storage);
-			}
-			else {
-				amount_to_deliver.front()++;
 			}
 
 			new_targeted_storage = weak_ptr<Storage>();
@@ -494,7 +508,7 @@ bool Worker::collectResources(vector<shared_ptr<Resource>> resources, vector<sha
 		else {
 			tmp_resources.front().lock()->occupied = false;
 			found_resources--;
-			tmp_resources.pop();
+			tmp_resources.erase(tmp_resources.begin());
 		}
 	}
 
@@ -637,7 +651,7 @@ void Worker::update(vector<shared_ptr<Resource>> resources,
 			if (Vector2Distance(pos, targeted_resources.front().lock()->pos) <= 0.5f) {
 				targeted_resources.front().lock()->taken = true;
 				collected_types.emplace_back(targeted_resources.front().lock()->type);
-				targeted_resources.pop();
+				targeted_resources.erase(targeted_resources.begin());
 			}
 			else
 			{

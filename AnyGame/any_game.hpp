@@ -6,17 +6,17 @@
 #include <array>
 #include <memory>
 
-#define MAX_TYPE 4
+constexpr auto MAX_TYPE = 4;
 
-#define NATURAL_TYPE 3
+constexpr auto NATURAL_TYPE = 3;
 
-#define SPEED_MOD 100
+constexpr auto SPEED_MOD = 100;
 
-#define WORKER_CAPACITY 2
+constexpr auto WORKER_CAPACITY = 4;
 
-#define MAX_PRIORITY 4
+constexpr auto MAX_PRIORITY = 4;
 
-#define STOCKPILE_CAPACITY 10
+constexpr auto STOCKPILE_CAPACITY = 10;
 
 using namespace std;
 
@@ -60,6 +60,7 @@ public:
 
 	bool isFull(int type);
 	bool hasSpace(int type);
+	bool hasSpace(vector<int> types);
 	int spaceLeft(int type);
 };
 
@@ -211,17 +212,17 @@ public:
 
 	WORKER_STATES state = WORKER_STATES::IDLE;
 
-	int capacity;
+	int capacity = WORKER_CAPACITY;
 
-	vector<int> collected_types; // types picked up
+	vector<int> collected_types = vector<int>(); // types picked up
 
-	vector<int> types_to_deliver; // types to pick up and deliver
+	vector<int> types_to_deliver = vector<int>(); // types to pick up and deliver
 	queue<int> amount_to_take = queue<int>(); // how many resources does worker take from targeted storages
 	queue<int> amount_to_deliver = queue<int>(); // how many resources does worker deliver to targeted storages
 
-	queue<weak_ptr<Resource>> targeted_resources;
-	queue<weak_ptr<Storage>> targeted_storages;
-	weak_ptr<Task> targeted_task;
+	vector<weak_ptr<Resource>> targeted_resources = vector<weak_ptr<Resource>>();
+	queue<weak_ptr<Storage>> targeted_storages = queue<weak_ptr<Storage>>();
+	weak_ptr<Task> targeted_task = weak_ptr<Task>();
 
 	Worker(int id, Vector2 pos, float speed);
 
@@ -259,7 +260,7 @@ weak_ptr<Storage> findStorageToIdle(Vector2 point, vector<shared_ptr<Storage>> s
 
 weak_ptr<Storage> findStorageToDeliver(Vector2 point, vector<shared_ptr<Storage>> storages);
 
-weak_ptr<Storage> findStorageToStore(Vector2 point, vector<shared_ptr<Storage>> storages,int type);
+weak_ptr<Storage> findStorageToStore(Vector2 point, vector<shared_ptr<Storage>> storages, vector<int> types);
 
 weak_ptr<Storage> findStorageToTake(Vector2 point, vector<shared_ptr<Storage>> storages, array<int, MAX_TYPE>& return_types, array<int, MAX_TYPE> wanted_types, int max_priority);
 
