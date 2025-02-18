@@ -216,8 +216,8 @@ public:
 	vector<int> collected_types; // types picked up
 
 	vector<int> types_to_deliver; // types to pick up and deliver
-	queue<int> amount_to_take = queue<int>(); // how many resources does worker take from each stockpile
-	queue<int> amount_to_deliver = queue<int>(); // how many resources does worker deliver to each construction
+	queue<int> amount_to_take = queue<int>(); // how many resources does worker take from targeted storages
+	queue<int> amount_to_deliver = queue<int>(); // how many resources does worker deliver to targeted storages
 
 	queue<weak_ptr<Resource>> targeted_resources;
 	queue<weak_ptr<Storage>> targeted_storages;

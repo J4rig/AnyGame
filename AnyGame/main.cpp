@@ -258,7 +258,7 @@ weak_ptr<Storage> findStorageToDeliver(Vector2 point, vector<shared_ptr<Storage>
 		found_storages.emplace_back(s);
 	}
 
-	sort(found_storages.begin(), found_storages.end(), [](shared_ptr<Storage> a, shared_ptr<Storage> b) {return a->priority > b->priority; });
+	sort(found_storages.begin(), found_storages.end(), storage_cmp);
 
 	for (int s = 0; s < found_storages.size(); s++) {
 		bool found = false;
@@ -459,15 +459,15 @@ bool Worker::collectResources(vector<shared_ptr<Resource>> resources, vector<sha
 		targeted_resources.pop();
 	}
 
-	weak_ptr<Storage> new_targeted_stockpile = weak_ptr<Storage>();
+	weak_ptr<Storage> new_targeted_storage = weak_ptr<Storage>();
 
 	bool first = true;
 
 	while (!tmp_resources.empty()) {
-		new_targeted_stockpile = findStorageToStore(lastPos, storages, tmp_resources.front().lock()->type);
-		if (!new_targeted_stockpile.expired()) {
-			while (!tmp_resources.empty() && new_targeted_stockpile.lock()->hasSpace(tmp_resources.front().lock()->type)) {
-				new_targeted_stockpile.lock()->will_be[tmp_resources.front().lock()->type]++;
+		new_targeted_storage = findStorageToStore(lastPos, storages, tmp_resources.front().lock()->type);
+		if (!new_targeted_storage.expired()) {
+			if (!tmp_resources.empty() && new_targeted_storage.lock()->hasSpace(tmp_resources.front().lock()->type)) {
+				new_targeted_storage.lock()->will_be[tmp_resources.front().lock()->type]++;
 				targeted_resources.push(tmp_resources.front());
 				tmp_resources.pop();
 			}
@@ -479,10 +479,16 @@ bool Worker::collectResources(vector<shared_ptr<Resource>> resources, vector<sha
 				first = false;
 			}
 
-			if (targeted_storages.empty() || new_targeted_stockpile.lock() != targeted_storages.front().lock()) {
-				targeted_storages.push(new_targeted_stockpile);
+			if (targeted_storages.empty() || new_targeted_storage.lock() != targeted_storages.front().lock()) {
+				amount_to_deliver.push(1);
+				cout << "found new storage: " << new_targeted_storage.lock()->id << " <-id\n";
+				targeted_storages.push(new_targeted_storage);
 			}
-			new_targeted_stockpile = weak_ptr<Storage>();
+			else {
+				amount_to_deliver.front()++;
+			}
+
+			new_targeted_storage = weak_ptr<Storage>();
 
 		}
 		else {
@@ -491,6 +497,7 @@ bool Worker::collectResources(vector<shared_ptr<Resource>> resources, vector<sha
 			tmp_resources.pop();
 		}
 	}
+
 	return found_resources > 0;
 }
 
@@ -615,6 +622,17 @@ void Worker::update(vector<shared_ptr<Resource>> resources,
 	}
 
 	else if (state == WORKER_STATES::COLLECTING) {
+
+		if (!targeted_storages.empty()) {
+			queue<weak_ptr<Storage>> s = targeted_storages;
+			cout << "tageted storages:\n";
+			while (!s.empty()) {
+				cout << s.front().lock()->id << " <-id ";
+				s.pop();
+			}
+			cout << "\n";
+		}
+
 		if (!targeted_resources.empty()) {
 			if (Vector2Distance(pos, targeted_resources.front().lock()->pos) <= 0.5f) {
 				targeted_resources.front().lock()->taken = true;
@@ -628,13 +646,17 @@ void Worker::update(vector<shared_ptr<Resource>> resources,
 		}
 		else {
 			if (Vector2Distance(pos, targeted_storages.front().lock()->pos) <= 40+10) {
+
+				cout << "delivering type: " << collected_types.back() << "\n";
 				
-				while (!collected_types.empty() && !targeted_storages.front().lock()->isFull(collected_types.back())) {
-					targeted_storages.front().lock()->is[collected_types.back()]++;
-					//targeted_storages.front().lock()->will_be[collected_types.back()]++;
-					collected_types.pop_back();
+				for (int i = 0; i < amount_to_deliver.front(); i++) {
+					cout << "delivered to storage " << targeted_storages.front().lock()->id << " <-id\n";
+					targeted_storages.front().lock()->is[collected_types.front()]++;
+					collected_types.erase(collected_types.begin());
 				}
-				
+
+				amount_to_deliver.pop();
+
 				if (targeted_storages.size() > 1) {
 					targeted_storages.pop();
 				}
@@ -793,7 +815,7 @@ int main() {
 			array<int, MAX_TYPE> limits = { 0 };
 			limits.fill(STOCKPILE_CAPACITY);
 
-			shared_ptr<Storage> new_storage = make_shared<Storage>(storage_id++, mouse_pos, 1, STOCKPILE_CAPACITY, limits, true);
+			shared_ptr<Storage> new_storage = make_shared<Storage>(storage_id++, mouse_pos, 0, STOCKPILE_CAPACITY, limits, true);
 			insertStorage(storages, new_storage);
 		
 			stockpiles.emplace_back(new Stockpile(stockpile_id++, mouse_pos, 40.0f, weak_ptr<Construction>(), new_storage));
@@ -823,7 +845,7 @@ int main() {
 			std::array<int, MAX_TYPE> limits = { 0 };
 			limits[1] = 1;
 			limits[2] = 1;
-			shared_ptr<Storage> new_storage = make_shared<Storage>(stockpile_id++, mouse_pos, 2, 2, limits, false);
+			shared_ptr<Storage> new_storage = make_shared<Storage>(stockpile_id++, mouse_pos, 1, 2, limits, true);
 			insertStorage(storages, new_storage);
 			shared_ptr<Forge> forge = make_shared<Forge>(forge_id++, mouse_pos, 40, new_storage);
 			forges.emplace_back(forge);
@@ -837,7 +859,7 @@ int main() {
 				array<int, MAX_TYPE> limits = { 0 };
 				limits.fill(STOCKPILE_CAPACITY);
 
-				shared_ptr<Storage> new_storage = make_shared<Storage>(storage_id++, s->pos, 1, 10, limits, true);
+				shared_ptr<Storage> new_storage = make_shared<Storage>(storage_id++, s->pos, 0, 10, limits, true);
 				insertStorage(storages, new_storage);
 				s->storage = new_storage;
 			}
@@ -882,6 +904,10 @@ int main() {
 				forges[f]->storage.lock()->is = { 0 };
 				forges[f]->storage.lock()->will_be = { 0 };
 				resources.emplace_back(make_shared<Resource>(resource_id++, Vector2Add(forges[f]->pos, {(float)(rand() % 60 - 30),(float)(rand() % 60 - 30)}), 3));
+				forges[f]->task.lock()->finished = true;
+			}
+
+			if ((!forges[f]->task.expired() && forges[f]->storage.lock()->hasSpace(-1))) {
 				forges[f]->task.lock()->finished = true;
 			}
 
