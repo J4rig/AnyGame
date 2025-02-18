@@ -6,13 +6,17 @@
 #include <array>
 #include <memory>
 
-#define MAX_TYPE 3
+#define MAX_TYPE 4
+
+#define NATURAL_TYPE 3
 
 #define SPEED_MOD 100
 
 #define WORKER_CAPACITY 2
 
 #define MAX_PRIORITY 4
+
+#define STOCKPILE_CAPACITY 10
 
 using namespace std;
 
@@ -21,11 +25,12 @@ int stockpile_id = 0;
 int resource_id = 0;
 int worker_id = 0;
 int generator_id = 0;
+int forge_id = 0;
 
 int storage_id = 0;
 int task_id = 0;
 
-Color type_color[MAX_TYPE] = { MAGENTA, DARKGREEN, DARKBLUE };
+Color type_color[MAX_TYPE] = { MAGENTA, DARKGREEN, DARKBLUE, YELLOW };
 
 
 
@@ -41,6 +46,8 @@ public:
 	int capacity;
 
 	bool can_take;
+
+	bool remove = false;
 
 	array<int, MAX_TYPE> is = { 0 };
 	array<int, MAX_TYPE> will_be = { 0 };
@@ -72,6 +79,8 @@ public:
 
 	int max_workers;
 	int current_workers = 0;
+
+	bool finished = false;
 
 	Task(int id, Vector2 pos, int priority, float work_to_do, int max_workers);
 
@@ -152,8 +161,6 @@ public:
 
 	float dispense_radius;
 
-	bool just_generated;
-
 	Generator(int id, Vector2 pos, float r, int type, int max, float dispense_radius);
 
 	void draw();
@@ -161,6 +168,24 @@ public:
 	bool isEmpty();
 
 	//void update(); // delete if isEmpty() else if just_genreated reset task
+};
+
+class Forge {
+public:
+
+	int id;
+	Vector2 pos;
+	float r;
+
+	weak_ptr<Storage> storage;
+	weak_ptr<Task> task;
+
+	int type = 3;
+
+	Forge(int id, Vector2 pos, float r, weak_ptr<Storage> storage);
+
+	void draw();
+
 };
 
 
@@ -176,9 +201,6 @@ enum class WORKER_STATES {
 	TRANSPORTING,
 	OPERATING
 };
-
-typedef priority_queue<shared_ptr<Storage>, vector<shared_ptr<Storage>>, decltype(storage_cmp)> StorageQueue;
-typedef priority_queue<shared_ptr<Task>, vector<shared_ptr<Task>>, decltype(task_cmp)> TaskQueue;
 
 class Worker {
 public:
@@ -204,8 +226,8 @@ public:
 	Worker(int id, Vector2 pos, float speed);
 
 	void update(vector<shared_ptr<Resource>> resources,
-		priority_queue<shared_ptr<Storage>, vector<shared_ptr<Storage>>, decltype(storage_cmp)> storages,
-		priority_queue<shared_ptr<Task>, vector<shared_ptr<Task>>, decltype(task_cmp)> tasks
+		vector<shared_ptr<Storage>> storages,
+		vector<shared_ptr<Task>> tasks
 		);
 
 	void draw();
@@ -218,11 +240,11 @@ public:
 
 
 	// if possible, sets all the necessary data for valid resource collection route
-	bool collectResources(vector<shared_ptr<Resource>> resources, StorageQueue storages);
+	bool collectResources(vector<shared_ptr<Resource>> resources, vector<shared_ptr<Storage>> storages);
 
-	bool transportResources(StorageQueue storages);
+	bool transportResources(vector<shared_ptr<Storage>> storages);
 
-	bool completeTask(TaskQueue tasks);
+	bool completeTask(vector<shared_ptr<Task>> tasks);
 
 	//bool deliverResourcesToConstructions(vector<Construction*> constructions, vector<Stockpile*> stockpiles);
 
@@ -233,15 +255,15 @@ Vector2 rotateAroundPoint(Vector2 point, Vector2 center, float angleInRads);
 
 shared_ptr<Resource> findClosestResource(Vector2 point, vector<shared_ptr<Resource>> resources, array<int,MAX_TYPE> valid_types);
 
-weak_ptr<Storage> findStorageToIdle(Vector2 point, StorageQueue storages);
+weak_ptr<Storage> findStorageToIdle(Vector2 point, vector<shared_ptr<Storage>> storages);
 
-weak_ptr<Storage> findStorageToDeliver(Vector2 point, StorageQueue storages);
+weak_ptr<Storage> findStorageToDeliver(Vector2 point, vector<shared_ptr<Storage>> storages);
 
-weak_ptr<Storage> findStorageToStore(Vector2 point, StorageQueue storages,int type);
+weak_ptr<Storage> findStorageToStore(Vector2 point, vector<shared_ptr<Storage>> storages,int type);
 
-weak_ptr<Storage> findStorageToTake(Vector2 point, StorageQueue storages, array<int, MAX_TYPE>& return_types, array<int, MAX_TYPE> wanted_types, int max_priority);
+weak_ptr<Storage> findStorageToTake(Vector2 point, vector<shared_ptr<Storage>> storages, array<int, MAX_TYPE>& return_types, array<int, MAX_TYPE> wanted_types, int max_priority);
 
-weak_ptr<Task> findTask(Vector2 point, TaskQueue tasks);
+weak_ptr<Task> findTask(Vector2 point, vector<shared_ptr<Task>> tasks);
 
 array<int, MAX_TYPE> hasTypes(array<int, MAX_TYPE> stored_types, array<int, MAX_TYPE> types);
 
@@ -253,4 +275,8 @@ int resourceCount(array<int, MAX_TYPE> stored_types);
 
 queue<int> cutToCapacity(array<int, MAX_TYPE> stored_types, int capacity);
 
-array<int, MAX_TYPE> canBeStored(StorageQueue storages);
+array<int, MAX_TYPE> canBeStored(vector<shared_ptr<Storage>> storages);
+
+void insertStorage(vector<shared_ptr<Storage>> &storages, shared_ptr<Storage> storage);
+
+void insertTask(vector<shared_ptr<Task>> &tasks, shared_ptr<Task> task);
