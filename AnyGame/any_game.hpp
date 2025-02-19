@@ -85,9 +85,9 @@ public:
 
 	Task(int id, Vector2 pos, int priority, float work_to_do, int max_workers);
 
-	bool hasWorkers();
-	bool isFullyOccupied();
-	bool isCompleted();
+	bool hasWorkers() const;
+	bool isFullyOccupied() const;
+	bool isCompleted() const;
 };
 
 
@@ -104,8 +104,6 @@ public:
 	weak_ptr<Task> task;
 
 	Construction(int id, Vector2 pos, weak_ptr<Storage> storage, weak_ptr<Task> task);
-
-	//void update(); // if storage is full creeates task if task is completed deletes self
 };
 
 
@@ -122,7 +120,7 @@ public:
 
 	Stockpile(int id, Vector2 pos, float r, weak_ptr < Construction> construction, weak_ptr <Storage> storage);
 
-	void draw();
+	void draw() const;
 };
 
 
@@ -140,9 +138,7 @@ public:
 
 	Resource(int id, Vector2 pos, int type);
 
-	void draw();
-
-	//void update(); // delete if taken
+	void draw() const;
 };
 
 
@@ -164,11 +160,9 @@ public:
 
 	Generator(int id, Vector2 pos, float r, int type, int max, float dispense_radius);
 
-	void draw();
+	void draw() const;
 
-	bool isEmpty();
-
-	//void update(); // delete if isEmpty() else if just_genreated reset task
+	bool isEmpty() const;
 };
 
 class Forge {
@@ -185,7 +179,7 @@ public:
 
 	Forge(int id, Vector2 pos, float r, weak_ptr<Storage> storage);
 
-	void draw();
+	void draw() const;
 
 };
 
@@ -226,30 +220,17 @@ public:
 
 	Worker(int id, Vector2 pos, float speed);
 
-	void update(vector<shared_ptr<Resource>> resources,
-		vector<shared_ptr<Storage>> storages,
-		vector<shared_ptr<Task>> tasks
-		);
+	void update(vector<shared_ptr<Resource>> resources, vector<shared_ptr<Storage>> storages, vector<shared_ptr<Task>> tasks);
 
 	void draw();
 
-	//if is full
-	bool isFull();	
+	bool isPacked() const;
 
-	//if will be full after collecting everithing to deliver
-	bool isPacked();
-
-
-	// if possible, sets all the necessary data for valid resource collection route
 	bool collectResources(vector<shared_ptr<Resource>> resources, vector<shared_ptr<Storage>> storages);
 
 	bool transportResources(vector<shared_ptr<Storage>> storages);
 
 	bool completeTask(vector<shared_ptr<Task>> tasks);
-
-	//bool deliverResourcesToConstructions(vector<Construction*> constructions, vector<Stockpile*> stockpiles);
-
-	//bool workOnConstruction(vector<Construction*> constructions);
 };
 
 Vector2 rotateAroundPoint(Vector2 point, Vector2 center, float angleInRads);

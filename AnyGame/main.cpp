@@ -58,15 +58,15 @@ Task::Task(int id, Vector2 pos, int priority, float work_to_do, int max_workers)
 	id(id), pos(pos), priority(priority), work_to_do(work_to_do), max_workers(max_workers) {};
 
 
-bool Task::hasWorkers() {
+bool Task::hasWorkers() const {
 	return current_workers > 0;
 }
 
-bool Task::isFullyOccupied() {
+bool Task::isFullyOccupied() const {
 	return current_workers >= max_workers;
 }
 
-bool Task::isCompleted() {
+bool Task::isCompleted() const {
 	return work_done >= work_to_do;
 }
 
@@ -82,7 +82,7 @@ Stockpile::Stockpile(int id, Vector2 pos, float r, weak_ptr <Construction> const
 
 
 
-void Stockpile::draw() {
+void Stockpile::draw() const {
 	if (construction.expired()) {
 		DrawRing(pos, r - 2, r, 0, 360, 0, DARKGRAY);
 
@@ -94,7 +94,7 @@ void Stockpile::draw() {
 			drawn_pieces += storage.lock()->is[i];
 		}
 
-		DrawText((to_string(storage.lock()->isStored()) + "/" + to_string(storage.lock()->capacity)).c_str(), pos.x - 10, pos.y, 10, WHITE);
+		DrawText((to_string(storage.lock()->isStored()) + "/" + to_string(storage.lock()->capacity)).c_str(), (int)pos.x - 10, (int)pos.y, 10, WHITE);
 		//DrawText(("s: " + to_string(id)).c_str(),pos.x-5,pos.y-r-2,15,RED);
 		//DrawText(("r: " + to_string(storage.lock()->id) + " p: " + to_string(storage.lock()->priority)).c_str(), pos.x + 5, pos.y + r - 2, 15, GREEN);
 	}
@@ -119,7 +119,7 @@ Resource::Resource(int id, Vector2 pos, int type) :
 	id(id), pos(pos), type(type) {};
 
 
-void Resource::draw() {
+void Resource::draw() const {
 	DrawCircleV(pos, r, type_color[type]);
 	//DrawText(("r: " + to_string(id)).c_str(), pos.x - 5, pos.y - r - 2, 15, RED);
 }
@@ -131,7 +131,7 @@ Generator::Generator(int id, Vector2 pos, float r, int type, int max, float disp
 
 
 
-void Generator::draw() {
+void Generator::draw() const {
 	DrawRing(pos, 10, r, 0, 360, 0, DARKGRAY);
 	DrawRing(pos, 10, r, 0, (float)remaining / (float)max * 360.0f, 0, type_color[type]);
 	//DrawText(("g: " + to_string(id)).c_str(), pos.x - 5, pos.y - r - 2, 15, RED);
@@ -141,14 +141,14 @@ void Generator::draw() {
 
 
 
-bool Generator::isEmpty() {
+bool Generator::isEmpty() const {
 	return remaining <= 0;
 }
 
 Forge::Forge(int id, Vector2 pos, float r, weak_ptr<Storage> storage) :
 	id(id), pos(pos), r(r), storage(storage), task(weak_ptr<Task>()) {};
 
-void Forge::draw() {
+void Forge::draw() const {
 	DrawCircleLinesV(pos, r, type_color[type]);
 	if (!task.expired()) {
 		DrawRing(pos, r - 4, r, 0, 360 * (task.lock()->work_done / task.lock()->work_to_do), 0, type_color[type]);
@@ -184,14 +184,7 @@ void Worker::draw() {
 }
 
 
-
-bool Worker::isFull() {
-	return collected_types.size() >= capacity;
-}
-
-
-
-bool Worker::isPacked() {
+bool Worker::isPacked() const {
 	return types_to_deliver.size() >= capacity;
 }
 
@@ -540,7 +533,7 @@ bool Worker::transportResources(vector<shared_ptr<Storage>> storages) {
 			break;
 		}
 
-		queue<int> types_to_pickup = cutToCapacity(from_types, capacity - types_to_deliver.size());
+		queue<int> types_to_pickup = cutToCapacity(from_types, capacity - (int)types_to_deliver.size());
 
 		if (first) {
 			targeted_storages = {};
@@ -549,19 +542,19 @@ bool Worker::transportResources(vector<shared_ptr<Storage>> storages) {
 
 		if (targeted_storages.empty() || targeted_storages.front().lock() != take_from) {
 			targeted_storages.push(take_from);
-			amount_to_take.push(types_to_pickup.size());
+			amount_to_take.push((int)types_to_pickup.size());
 		}
 		else {
-			amount_to_take.front() += types_to_pickup.size();
+			amount_to_take.front() += (int)types_to_pickup.size();
 		}
 
 		if (deliver_queue.empty() || deliver_queue.front().lock() != deliver_to) {
 			deliver_queue.push(deliver_to);
-			amount_to_deliver.push(types_to_pickup.size());
+			amount_to_deliver.push((int)types_to_pickup.size());
 			
 		}
 		else {
-			amount_to_deliver.front() += types_to_pickup.size();
+			amount_to_deliver.front() += (int)types_to_pickup.size();
 		}
 
 		while (!types_to_pickup.empty()) {
@@ -756,7 +749,7 @@ int main() {
 
 	bool pause = false;
 
-	srand(time(nullptr)); // time based seed for RNG
+	srand((unsigned int)time(nullptr)); // time based seed for RNG
 
 	vector<shared_ptr<Storage>> storages;
 
