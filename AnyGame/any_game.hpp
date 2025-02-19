@@ -20,6 +20,8 @@ constexpr auto STOCKPILE_CAPACITY = 10;
 
 using namespace std;
 
+
+int raider_id = 0;
 int construction_id = 0;
 int stockpile_id = 0;
 int resource_id = 0;
@@ -29,6 +31,7 @@ int forge_id = 0;
 
 int storage_id = 0;
 int task_id = 0;
+int combat_id = 0;
 
 Color type_color[MAX_TYPE] = { MAGENTA, DARKGREEN, DARKBLUE, YELLOW };
 
@@ -90,9 +93,50 @@ public:
 	bool isCompleted() const;
 };
 
+class Combat {
+public:
+	int id;
+	Vector2 pos;
+	float r;
+
+	int max_health;
+	int health;
+
+	int defense;
+
+	int damage;
+
+	float time_to_attack = 0.0f;
+	float attack_cooldown = 3.0f;
+
+	Combat(int id, Vector2 pos, float r, int max_health, int defence, int damage);
+
+	void attack(weak_ptr<Combat>& target);
+
+	bool canAttack() const;
+	bool isDead() const;
+};
 
 
-//class that holds information for structures before they are completed
+
+class Raider {
+public:
+	int id;
+	Vector2 pos;
+
+	weak_ptr<Combat> combat;
+
+	weak_ptr<Combat> target = weak_ptr<Combat>();
+
+	Raider(int id, Vector2 pos, weak_ptr<Combat> combat);
+
+	void update(vector<shared_ptr<Combat>> targets);
+
+	void draw() const;
+};
+
+
+
 class Construction {
 public:
 	int id;
@@ -246,6 +290,8 @@ weak_ptr<Storage> findStorageToStore(Vector2 point, vector<shared_ptr<Storage>> 
 weak_ptr<Storage> findStorageToTake(Vector2 point, vector<shared_ptr<Storage>> storages, array<int, MAX_TYPE>& return_types, array<int, MAX_TYPE> wanted_types, int max_priority);
 
 weak_ptr<Task> findTask(Vector2 point, vector<shared_ptr<Task>> tasks);
+
+weak_ptr<Combat> findTarget(Vector2 point, weak_ptr<Combat> attacker, vector<shared_ptr<Combat>> targets);
 
 array<int, MAX_TYPE> hasTypes(array<int, MAX_TYPE> stored_types, array<int, MAX_TYPE> types);
 

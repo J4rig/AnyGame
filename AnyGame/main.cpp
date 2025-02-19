@@ -71,6 +71,53 @@ bool Task::isCompleted() const {
 }
 
 
+Combat::Combat(int id, Vector2 pos, float r, int max_health, int defense, int damage) :
+	id(id), pos(pos), r(r), max_health(max_health), health(max_health), defense(defense), damage(damage) { };
+
+void Combat::attack(weak_ptr<Combat> &target) {
+	target.lock()->health -= damage - target.lock()->defense;
+}
+
+bool Combat::canAttack() const {
+	return attack_cooldown <= time_to_attack;
+}
+
+bool Combat::isDead() const {
+	return health <= 0;
+}
+
+
+Raider::Raider(int id, Vector2 pos, weak_ptr<Combat> combat) :
+	id(id), pos(pos), combat(combat) {};
+
+void Raider::draw() const {
+	float r = combat.lock()->r;
+	float angle = ((float)combat.lock()->health / combat.lock()->max_health) * 360;
+	DrawCircleLinesV(pos, 15, PURPLE);
+	DrawRing(pos,0,r,0.0f,angle,0,RED);
+}
+
+void Raider::update(vector<shared_ptr<Combat>> targets) {
+	if (target.expired()) {
+		target = findTarget(pos, combat, targets);
+	}
+	else {
+		if (Vector2Distance(pos, target.lock()->pos) < combat.lock()->r + target.lock()->r) {
+			if (!combat.lock()->canAttack()) {
+				combat.lock()->time_to_attack += GetFrameTime();
+			}
+			else {
+				combat.lock()->attack(target);
+				combat.lock()->time_to_attack = 0.0f;
+			}
+		}
+		else {
+			pos = Vector2MoveTowards(pos, target.lock()->pos, SPEED_MOD * 5 * GetFrameTime());
+			combat.lock()->pos = pos;
+			combat.lock()->time_to_attack = 0.0f;
+		}
+	}
+}
 
 Construction::Construction(int id, Vector2 pos, weak_ptr<Storage> storage, weak_ptr<Task> task) :
 	id(id),pos(pos), storage(storage), task(task) {};
@@ -331,6 +378,25 @@ weak_ptr<Task> findTask(Vector2 point, vector<shared_ptr<Task>> tasks) {
 				min_distance = new_distance;
 				result = t;
 			}
+		}
+	}
+	return result;
+}
+
+
+weak_ptr<Combat> findTarget(Vector2 point, weak_ptr<Combat> attacker, vector<shared_ptr<Combat>> targets) {
+	float min_distance = numeric_limits<float>::max();
+	float new_distance;
+
+	weak_ptr<Combat> result = weak_ptr<Combat>();
+
+	for (shared_ptr<Combat> t : targets) {
+		if (attacker.lock() == t) {
+			continue;
+		}
+		if ((new_distance = min(Vector2Distance(point, t->pos), min_distance)) != min_distance) {
+			min_distance = new_distance;
+			result = t;
 		}
 	}
 	return result;
@@ -755,6 +821,9 @@ int main() {
 
 	vector<shared_ptr<Task>> tasks;
 
+	vector<shared_ptr<Combat>> targets;
+
+
 	vector<shared_ptr<Generator>> generators;
 
 	vector<shared_ptr<Stockpile>> stockpiles;
@@ -767,6 +836,8 @@ int main() {
 
 	vector<shared_ptr<Forge>> forges;
 
+	vector<shared_ptr<Raider>> raiders;
+
 	
 
 	InitWindow(1600, 800, "AnyGame");
@@ -778,23 +849,29 @@ int main() {
 		}
 
 		if (IsKeyReleased(KEY_BACKSPACE)) {
+			raider_id = 0;
 			construction_id = 0;
 			stockpile_id = 0;
 			resource_id = 0;
 			worker_id = 0;
 			generator_id = 0;
 			forge_id = 0;
+
 			storage_id = 0;
 			task_id = 0;
+			combat_id = 0;
 
 			storages.erase(storages.begin(), storages.begin() + storages.size());
 			tasks.erase(tasks.begin(), tasks.begin() + tasks.size());
+			targets.erase(targets.begin(), targets.begin() + targets.size());
 
 			resources.erase(resources.begin(), resources.begin() + resources.size());
 			generators.erase(generators.begin(), generators.begin() + generators.size());
 			stockpiles.erase(stockpiles.begin(), stockpiles.begin() + stockpiles.size());
 			workers.erase(workers.begin(), workers.begin() + workers.size());
 			forges.erase(forges.begin(), forges.begin() + forges.size());
+			raiders.erase(raiders.begin(), raiders.begin() + raiders.size());
+
 
 		}
 
@@ -856,6 +933,14 @@ int main() {
 			insertStorage(storages, new_storage);
 			shared_ptr<Forge> forge = make_shared<Forge>(forge_id++, mouse_pos, 40, new_storage);
 			forges.emplace_back(forge);
+		}
+
+		if (IsKeyReleased(KEY_R)) {
+			Vector2 mouse_pos = GetMousePosition();
+			shared_ptr<Combat> new_target = make_shared<Combat>(combat_id++, mouse_pos, 15, 10, 2, 3);
+			targets.emplace_back(new_target);
+			shared_ptr<Raider> new_raider = make_shared<Raider>(raider_id++, mouse_pos, new_target);
+			raiders.emplace_back(new_raider);
 		}
 
 		BeginDrawing();
@@ -941,6 +1026,27 @@ int main() {
 				insertTask(tasks, new_task);
 				constructions[c]->task = new_task;
 			}
+		}
+
+		for (int t = 0; t < targets.size(); t++) {
+			if (!pause &&targets[t]->isDead()) {
+				targets.erase(targets.begin() + t);
+				t--;
+				continue;
+			}
+		}
+
+		for (int r = 0; r < raiders.size(); r++) {
+			if (!pause) {
+				if (raiders[r]->combat.expired()) {
+					raiders.erase(raiders.begin() + r);
+					r--;
+					continue;
+				}
+
+				raiders[r]->update(targets);
+			}
+			raiders[r]->draw();
 		}
 
 		for (shared_ptr<Worker> w : workers) {
