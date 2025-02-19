@@ -1,3 +1,4 @@
+#pragma once
 #include <raylib.h>
 #include <raymath.h>
 
@@ -5,6 +6,7 @@
 #include <queue>
 #include <array>
 #include <memory>
+#include <functional>
 
 constexpr auto MAX_TYPE = 4;
 
@@ -20,262 +22,39 @@ constexpr auto STOCKPILE_CAPACITY = 10;
 
 using namespace std;
 
+inline Color type_color[MAX_TYPE] = { MAGENTA, DARKGREEN, DARKBLUE, YELLOW };
 
-int raider_id = 0;
-int construction_id = 0;
-int stockpile_id = 0;
-int resource_id = 0;
-int worker_id = 0;
-int generator_id = 0;
-int forge_id = 0;
 
-int storage_id = 0;
-int task_id = 0;
-int combat_id = 0;
 
-Color type_color[MAX_TYPE] = { MAGENTA, DARKGREEN, DARKBLUE, YELLOW };
+//class Tribe;
+//
+//class Settlement;
 
 
 
-// class that stores resources
-class Storage {
-public:
-	int id;
+class Storage;
 
-	Vector2 pos;
+class Task;
 
-	int priority;
+class Combat;
 
-	int capacity;
 
-	bool can_take;
 
-	bool remove = false;
+class Raider;
 
-	array<int, MAX_TYPE> is = { 0 };
-	array<int, MAX_TYPE> will_be = { 0 };
-	array<int, MAX_TYPE> can_be = { 0 };
+class Construction;
 
-	Storage(int id, Vector2 pos, int priority, int capacity, array<int, MAX_TYPE> limits, bool can_take);
+class Stockpile;
 
-	int isStored();
-	int aboutToBeStored();
+class Resource;
 
-	bool isFull(int type);
-	bool hasSpace(int type);
-	bool hasSpace(vector<int> types);
-	int spaceLeft(int type);
-};
+class Generator;
 
+class Forge;
 
+class Worker;
 
-// class that stores progres done on various operations
-class Task {
-public:
-	int id;
 
-	Vector2 pos;
-
-	int priority;
-
-	float work_to_do;
-	float work_done = 0.0f;
-
-	int max_workers;
-	int current_workers = 0;
-
-	bool finished = false;
-
-	Task(int id, Vector2 pos, int priority, float work_to_do, int max_workers);
-
-	bool hasWorkers() const;
-	bool isFullyOccupied() const;
-	bool isCompleted() const;
-};
-
-class Combat {
-public:
-	int id;
-	Vector2 pos;
-	float r;
-
-	int max_health;
-	int health;
-
-	int defense;
-
-	int damage;
-
-	float time_to_attack = 0.0f;
-	float attack_cooldown = 3.0f;
-
-	Combat(int id, Vector2 pos, float r, int max_health, int defence, int damage);
-
-	void attack(weak_ptr<Combat>& target);
-
-	bool canAttack() const;
-	bool isDead() const;
-};
-
-
-
-class Raider {
-public:
-	int id;
-	Vector2 pos;
-
-	weak_ptr<Combat> combat;
-
-	weak_ptr<Combat> target = weak_ptr<Combat>();
-
-	Raider(int id, Vector2 pos, weak_ptr<Combat> combat);
-
-	void update(vector<shared_ptr<Combat>> targets);
-
-	void draw() const;
-};
-
-
-
-class Construction {
-public:
-	int id;
-	Vector2 pos;
-
-	bool is_all_delivered = false;
-	weak_ptr<Storage> storage;
-
-	weak_ptr<Task> task;
-
-	Construction(int id, Vector2 pos, weak_ptr<Storage> storage, weak_ptr<Task> task);
-};
-
-
-
-class Stockpile {
-public:
-	int id;
-
-	Vector2 pos;
-	float r;
-
-	weak_ptr<Construction> construction;
-	weak_ptr<Storage> storage;
-
-	Stockpile(int id, Vector2 pos, float r, weak_ptr < Construction> construction, weak_ptr <Storage> storage);
-
-	void draw() const;
-};
-
-
-
-class Resource {
-public:
-	int id;
-	Vector2 pos;
-	float r = 5.0f;
-
-	int type;
-
-	bool occupied = false;
-	bool taken = false;
-
-	Resource(int id, Vector2 pos, int type);
-
-	void draw() const;
-};
-
-
-
-class Generator {
-public:
-	int id;
-	Vector2 pos;
-	float r;
-
-	int type;
-
-	int max;
-	int remaining;
-
-	weak_ptr<Task> task;
-
-	float dispense_radius;
-
-	Generator(int id, Vector2 pos, float r, int type, int max, float dispense_radius);
-
-	void draw() const;
-
-	bool isEmpty() const;
-};
-
-class Forge {
-public:
-
-	int id;
-	Vector2 pos;
-	float r;
-
-	weak_ptr<Storage> storage;
-	weak_ptr<Task> task;
-
-	int type = 3;
-
-	Forge(int id, Vector2 pos, float r, weak_ptr<Storage> storage);
-
-	void draw() const;
-
-};
-
-
-
-auto storage_cmp = [](shared_ptr<Storage> left, shared_ptr<Storage> right) {return left->priority > right->priority; };
-auto task_cmp = [](shared_ptr<Task > left, shared_ptr<Task> right) {return left->priority > right->priority; };
-
-
-
-enum class WORKER_STATES {
-	IDLE = 0,
-	COLLECTING,
-	TRANSPORTING,
-	OPERATING
-};
-
-class Worker {
-public:
-	int id;
-	Vector2 pos;
-	float r = 10.0f;
-	float speed;
-
-	WORKER_STATES state = WORKER_STATES::IDLE;
-
-	int capacity = WORKER_CAPACITY;
-
-	vector<int> collected_types = vector<int>(); // types picked up
-
-	vector<int> types_to_deliver = vector<int>(); // types to pick up and deliver
-	queue<int> amount_to_take = queue<int>(); // how many resources does worker take from targeted storages
-	queue<int> amount_to_deliver = queue<int>(); // how many resources does worker deliver to targeted storages
-
-	vector<weak_ptr<Resource>> targeted_resources = vector<weak_ptr<Resource>>();
-	queue<weak_ptr<Storage>> targeted_storages = queue<weak_ptr<Storage>>();
-	weak_ptr<Task> targeted_task = weak_ptr<Task>();
-
-	Worker(int id, Vector2 pos, float speed);
-
-	void update(vector<shared_ptr<Resource>> resources, vector<shared_ptr<Storage>> storages, vector<shared_ptr<Task>> tasks);
-
-	void draw();
-
-	bool isPacked() const;
-
-	bool collectResources(vector<shared_ptr<Resource>> resources, vector<shared_ptr<Storage>> storages);
-
-	bool transportResources(vector<shared_ptr<Storage>> storages);
-
-	bool completeTask(vector<shared_ptr<Task>> tasks);
-};
 
 Vector2 rotateAroundPoint(Vector2 point, Vector2 center, float angleInRads);
 

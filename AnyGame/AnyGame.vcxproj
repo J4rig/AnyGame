@@ -105,7 +105,7 @@
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>C:\Users\kubin\Documents\raylib-5.5_win64_msvc16\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <LanguageStandard>Default</LanguageStandard>
+      <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -131,10 +131,34 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Combat.cpp" />
+    <ClCompile Include="Construction.cpp" />
+    <ClCompile Include="Forge.cpp" />
+    <ClCompile Include="Generator.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="Raider.cpp" />
+    <ClCompile Include="Resource.cpp" />
+    <ClCompile Include="Stockpile.cpp" />
+    <ClCompile Include="Stockpile.hpp" />
+    <ClCompile Include="Storage.cpp" />
+    <ClCompile Include="Task.cpp" />
+    <ClCompile Include="Tribe.cpp" />
+    <ClCompile Include="various.cpp" />
+    <ClCompile Include="Worker.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="any_game.hpp" />
+    <ClInclude Include="Combat.hpp" />
+    <ClInclude Include="Construction.hpp" />
+    <ClInclude Include="Forge.hpp" />
+    <ClInclude Include="Generator.hpp" />
+    <ClInclude Include="Raider.hpp" />
+    <ClInclude Include="Resource.hpp" />
+    <ClInclude Include="Settlement.hpp" />
+    <ClInclude Include="Storage.hpp" />
+    <ClInclude Include="Task.hpp" />
+    <ClInclude Include="Tribe.hpp" />
+    <ClInclude Include="Worker.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
