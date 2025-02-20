@@ -13,6 +13,9 @@
 #include "Forge.hpp"
 #include "Worker.hpp"
 
+#include "Tribe.hpp"
+#include "Settlement.hpp"
+
 #include <ctime>
 #include <iostream>
 
@@ -28,6 +31,9 @@ int storage_id = 0;
 int task_id = 0;
 int combat_id = 0;
 
+int settlement_id = 0;
+int tribe_id = 0;
+
 int main() {
 
 	bool pause = false;
@@ -35,34 +41,74 @@ int main() {
 	srand((unsigned int)time(nullptr)); // time based seed for RNG
 
 	
-	vector<shared_ptr<Storage>> storages;
+	vector<weak_ptr<Storage>> storages;
 
-	vector<shared_ptr<Task>> tasks;
+	vector<weak_ptr<Task>> tasks;
 
-	vector<shared_ptr<Combat>> targets;
+	vector<weak_ptr<Combat>> targets;
 
 
-	vector<shared_ptr<Generator>> generators;
 
-	vector<shared_ptr<Stockpile>> stockpiles;
+	vector<weak_ptr<Generator>> generators;
+
+	vector<weak_ptr<Stockpile>> stockpiles;
+
+	vector<weak_ptr<Worker>> workers;
+
+	vector<weak_ptr<Construction>> constructions;
+
+	vector<weak_ptr<Forge>> forges;
+
+	vector<weak_ptr<Raider>> raiders;
+
+
+	vector<weak_ptr<Settlement>> settlements;
+
 
 	vector<shared_ptr<Resource>> resources;
 
-	vector<shared_ptr<Worker>> workers;
+	vector<shared_ptr<Tribe>> tribes;
 
-	vector<shared_ptr<Construction>> constructions;
-
-	vector<shared_ptr<Forge>> forges;
-
-	vector<shared_ptr<Raider>> raiders; 
-
+	
 	
 
 	InitWindow(1600, 800, "AnyGame");
 	SetTargetFPS(30);
 	while (!WindowShouldClose()) {
 
-		if (IsKeyReleased(KEY_SPACE)) {
+		if (IsKeyReleased(KEY_T)) {
+			Vector2 mouse_pos = GetMousePosition();
+
+			// worker
+			shared_ptr<Worker> new_worker = make_shared<Worker>(worker_id++, Vector2AddValue(mouse_pos, 60), 1);
+			workers.emplace_back(new_worker);
+
+			// storage
+			array<int, MAX_TYPE> limits = { 0 };
+			limits.fill(STOCKPILE_CAPACITY);
+
+			shared_ptr<Storage> new_storage = make_shared<Storage>(storage_id++, mouse_pos, 0, STOCKPILE_CAPACITY, limits, true);
+			insertStorageWeak(storages, new_storage);
+
+			//stockpile
+			shared_ptr<Stockpile> new_stockpile = make_shared<Stockpile>(stockpile_id++, mouse_pos, 40.0f, weak_ptr<Construction>(), new_storage);
+			stockpiles.emplace_back(new_stockpile);
+
+			shared_ptr<Settlement> new_settlement = make_shared<Settlement>(settlement_id++, mouse_pos,1);
+
+			new_settlement->workers.emplace_back(new_worker);
+			insertStorageShared(new_settlement->storages, new_storage);
+			new_settlement->storages.emplace_back(new_storage);
+			new_settlement->stockpiles.emplace_back(new_stockpile);
+
+			settlements.emplace_back(new_settlement);
+
+			shared_ptr<Tribe> new_tribe = make_shared<Tribe>(tribe_id++, new_settlement);
+			tribes.emplace_back(new_tribe);
+
+		}
+
+		/*if (IsKeyReleased(KEY_SPACE)) {
 			pause = !pause;
 		}
 		
@@ -90,9 +136,7 @@ int main() {
 			forges.erase(forges.begin(), forges.begin() + forges.size());
 			constructions.erase(constructions.begin(), constructions.begin() + constructions.size());
 			raiders.erase(raiders.begin(), raiders.begin() + raiders.size());
-
-
-		}
+		}*/
 
 		if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {
 			Vector2 mouse_pos = GetMousePosition();
@@ -108,7 +152,7 @@ int main() {
 			}
 		}
 
-		if (IsMouseButtonReleased(MOUSE_BUTTON_RIGHT)) {
+		/*if (IsMouseButtonReleased(MOUSE_BUTTON_RIGHT)) {
 			Vector2 mouse_pos = GetMousePosition();
 			workers.emplace_back(new Worker(worker_id++, mouse_pos, 1.0f));
 		}
@@ -160,24 +204,51 @@ int main() {
 			targets.emplace_back(new_target);
 			shared_ptr<Raider> new_raider = make_shared<Raider>(raider_id++, mouse_pos, new_target);
 			raiders.emplace_back(new_raider);
+		}*/
+
+		for (shared_ptr<Tribe> tribe : tribes) {
+			for (shared_ptr<Settlement> settlement : tribe->settlements) {
+
+				for (shared_ptr<Stockpile> stockpile : settlement->stockpiles) {
+					if (stockpile->construction.expired() && stockpile->storage.expired()) {
+						array<int, MAX_TYPE> limits = { 0 };
+						limits.fill(STOCKPILE_CAPACITY);
+
+						shared_ptr<Storage> new_storage = make_shared<Storage>(storage_id++, stockpile->pos, 0, 10, limits, true);
+						insertStorageWeak(storages, new_storage);
+						insertStorageShared(settlement->storages, new_storage);
+						stockpile->storage = new_storage;
+					}
+				}
+
+				for (shared_ptr<Worker> w : settlement->workers) {
+					w->update(resources, settlement->storages, settlement->tasks);
+				}
+
+				for (int task = 0; task < settlement->tasks.size(); task++) {
+					if (settlement->tasks[task]->finished && settlement->tasks[task]->hasWorkers() == 0) {
+						settlement->tasks.erase(settlement->tasks.begin() + task);
+						task--;
+					}
+				}
+
+				for (int storage = 0; storage < settlement->storages.size(); storage++) {
+					if (settlement->storages[storage]->remove) {
+						settlement->storages.erase(settlement->storages.begin() + storage);
+						storage--;
+					}
+				}
+			}
 		}
 
 		BeginDrawing();
 		ClearBackground(BLACK);
 
-		for (shared_ptr<Stockpile> s : stockpiles) {
-			if (s->construction.expired() && s->storage.expired()) {
-				array<int, MAX_TYPE> limits = { 0 };
-				limits.fill(STOCKPILE_CAPACITY);
-
-				shared_ptr<Storage> new_storage = make_shared<Storage>(storage_id++, s->pos, 0, 10, limits, true);
-				insertStorage(storages, new_storage);
-				s->storage = new_storage;
-			}
-			s->draw();
+		for (weak_ptr<Stockpile> s : stockpiles) {
+			s.lock()->draw();
 		}
 
-		for (int g = 0; g < generators.size(); g++) {
+		/*for (int g = 0; g < generators.size(); g++) {
 
 			if (generators[g]->task.expired() && !generators[g]->isEmpty()) {
 				shared_ptr<Task> new_task = make_shared<Task>(task_id++, generators[g]->pos, 0, 5.0f, 1);
@@ -198,7 +269,7 @@ int main() {
 			else {
 				generators[g]->draw();
 			}
-		}
+		}*/
 
 		for (int res = 0; res < resources.size(); res++) {
 			if (resources[res]->taken) {
@@ -210,7 +281,7 @@ int main() {
 			}
 		}
 
-		for (int f = 0; f < forges.size(); f++) {
+		/*for (int f = 0; f < forges.size(); f++) {
 			if (!forges[f]->task.expired() && forges[f]->task.lock()->isCompleted() && !forges[f]->task.lock()->finished) {
 				forges[f]->storage.lock()->is = { 0 };
 				forges[f]->storage.lock()->will_be = { 0 };
@@ -228,9 +299,9 @@ int main() {
 				forges[f]->task = new_task;
 			}
 			forges[f]->draw();
-		}
+		}*/
 
-		for (int c = 0; c < constructions.size(); c++) {
+		/*for (int c = 0; c < constructions.size(); c++) {
 			if (!constructions[c]->task.expired() && constructions[c]->task.lock()->isCompleted()) {	
 				constructions[c]->task.lock()->finished = true;
 				constructions.erase(constructions.begin() + c);		
@@ -245,17 +316,17 @@ int main() {
 				insertTask(tasks, new_task);
 				constructions[c]->task = new_task;
 			}
-		}
+		}*/
 
-		for (int t = 0; t < targets.size(); t++) {
+		/*for (int t = 0; t < targets.size(); t++) {
 			if (!pause &&targets[t]->isDead()) {
 				targets.erase(targets.begin() + t);
 				t--;
 				continue;
 			}
-		}
+		}*/
 
-		for (int r = 0; r < raiders.size(); r++) {
+		/*for (int r = 0; r < raiders.size(); r++) {
 			if (!pause) {
 				if (raiders[r]->combat.expired()) {
 					raiders.erase(raiders.begin() + r);
@@ -266,27 +337,10 @@ int main() {
 				raiders[r]->update(targets);
 			}
 			raiders[r]->draw();
-		}
+		}*/
 
-		for (shared_ptr<Worker> w : workers) {
-			if (!pause) {
-				w->update(resources, storages, tasks);
-			}
-			w->draw();
-		}
-
-		for (int t = 0; t < tasks.size(); t++) {
-			if (tasks[t]->finished && tasks[t]->hasWorkers() == 0) {
-				tasks.erase(tasks.begin() + t);
-				t--;
-			}
-		}
-
-		for (int s = 0; s < storages.size(); s++) {
-			if (storages[s]->remove) {
-				storages.erase(storages.begin() + s);
-				s--;
-			}
+		for (weak_ptr<Worker> w : workers) {
+			w.lock()->draw();
 		}
 
 		EndDrawing();
@@ -294,3 +348,5 @@ int main() {
 	CloseWindow();
 	return 0;
 }
+
+// kubino<3astrid weeeeeeeeeeeeeee /(- 3-)/  

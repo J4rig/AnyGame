@@ -74,7 +74,7 @@ weak_ptr<Storage> findStorageToDeliver(Vector2 point, vector<shared_ptr<Storage>
 		found_storages.emplace_back(s);
 	}
 
-	sort(found_storages.begin(), found_storages.end(), storage_cmp);
+	sort(found_storages.begin(), found_storages.end(), storage_cmp_shared);
 
 	for (int s = 0; s < found_storages.size(); s++) {
 		bool found = false;
@@ -252,8 +252,13 @@ array<int, MAX_TYPE> canBeStored(vector<shared_ptr<Storage>> storages) {
 	return result;
 }
 
-void insertStorage(vector<shared_ptr<Storage>>& storages, shared_ptr<Storage> storage) {
-	auto pos = lower_bound(storages.begin(), storages.end(), storage, storage_cmp);
+void insertStorageShared(vector<shared_ptr<Storage>>& storages, shared_ptr<Storage> storage) {
+	auto pos = lower_bound(storages.begin(), storages.end(), storage, storage_cmp_shared);
+	storages.insert(pos, storage);
+}
+
+void insertStorageWeak(vector<weak_ptr<Storage>>& storages, shared_ptr<Storage> storage) {
+	auto pos = lower_bound(storages.begin(), storages.end(), storage, storage_cmp_weak);
 	storages.insert(pos, storage);
 }
 

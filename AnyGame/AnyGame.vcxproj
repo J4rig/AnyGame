@@ -138,6 +138,7 @@
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Raider.cpp" />
     <ClCompile Include="Resource.cpp" />
+    <ClCompile Include="Settlement.cpp" />
     <ClCompile Include="Stockpile.cpp" />
     <ClCompile Include="Stockpile.hpp" />
     <ClCompile Include="Storage.cpp" />

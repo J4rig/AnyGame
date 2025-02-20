@@ -26,9 +26,9 @@ inline Color type_color[MAX_TYPE] = { MAGENTA, DARKGREEN, DARKBLUE, YELLOW };
 
 
 
-//class Tribe;
-//
-//class Settlement;
+class Tribe;
+
+class Settlement;
 
 
 
@@ -84,6 +84,8 @@ queue<int> cutToCapacity(array<int, MAX_TYPE> stored_types, int capacity);
 
 array<int, MAX_TYPE> canBeStored(vector<shared_ptr<Storage>> storages);
 
-void insertStorage(vector<shared_ptr<Storage>> &storages, shared_ptr<Storage> storage);
+void insertStorageShared(vector<shared_ptr<Storage>>& storages, shared_ptr<Storage> storage);
+
+void insertStorageWeak(vector<weak_ptr<Storage>> &storages, shared_ptr<Storage> storage);
 
 void insertTask(vector<shared_ptr<Task>> &tasks, shared_ptr<Task> task);
