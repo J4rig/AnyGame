@@ -6,13 +6,13 @@
 
 #include <iostream>
 
-Worker::Worker(int id, Vector2 pos, float speed) :
-	id(id), pos(pos), speed(speed) {
+Worker::Worker(int id, int tribe, Vector2 pos, float speed) :
+	id(id), tribe(tribe), pos(pos), speed(speed) {
 };
 
 
-void Worker::draw() {
-	DrawRing(pos, 4 /*resource radius -1 so it overlaps and hides imperfections*/, r, 0, 360, 0, DARKGRAY);
+void Worker::draw() const{
+	DrawRing(pos, 4 /*resource radius -1 so it overlaps and hides imperfections*/, r, 0, 360, 0, tribe_color[tribe]);
 
 	if (!collected_types.empty()) {
 		//TODO change, not to calculate all the time but only recalculate when capacity changes

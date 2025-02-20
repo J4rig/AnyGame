@@ -5,13 +5,13 @@
 
 #include <string>
 
-Stockpile::Stockpile(int id, Vector2 pos, float r, weak_ptr <Construction> construction, weak_ptr <Storage> storage) :
-	id(id), pos(pos), r(r), construction(construction), storage(storage) {
+Stockpile::Stockpile(int id, int tribe, Vector2 pos, float r, weak_ptr <Construction> construction, weak_ptr <Storage> storage) :
+	id(id), tribe(tribe), pos(pos), r(r), construction(construction), storage(storage) {
 };
 
 void Stockpile::draw() const {
 	if (construction.expired()) {
-		DrawRing(pos, r - 2, r, 0, 360, 0, DARKGRAY);
+		DrawRing(pos, r - 2, r, 0, 360, 0, tribe_color[tribe]);
 
 		//TODO change, not to calculate all the time but only recalculate when capacity changes
 		float piece = 360.0f * (1.0f / (float)storage.lock()->capacity);

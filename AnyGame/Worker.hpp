@@ -11,6 +11,8 @@ enum class WORKER_STATES {
 class Worker {
 public:
 	int id;
+	int tribe;
+
 	Vector2 pos;
 	float r = 10.0f;
 	float speed;
@@ -29,11 +31,11 @@ public:
 	queue<weak_ptr<Storage>> targeted_storages = queue<weak_ptr<Storage>>();
 	weak_ptr<Task> targeted_task = weak_ptr<Task>();
 
-	Worker(int id, Vector2 pos, float speed);
+	Worker(int id, int tribe, Vector2 pos, float speed);
 
 	void update(vector<shared_ptr<Resource>> resources, vector<shared_ptr<Storage>> storages, vector<shared_ptr<Task>> tasks);
 
-	void draw();
+	void draw() const;
 
 	bool isPacked() const;
 

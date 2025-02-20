@@ -10,6 +10,8 @@
 
 constexpr auto MAX_TYPE = 4;
 
+constexpr auto MAX_TRIBE = 4;
+
 constexpr auto NATURAL_TYPE = 3;
 
 constexpr auto SPEED_MOD = 100;
@@ -22,8 +24,8 @@ constexpr auto STOCKPILE_CAPACITY = 10;
 
 using namespace std;
 
-inline Color type_color[MAX_TYPE] = { MAGENTA, DARKGREEN, DARKBLUE, YELLOW };
-
+inline const array<Color, MAX_TYPE> type_color = { MAGENTA, DARKGREEN, DARKBLUE, YELLOW };
+inline const array<Color, MAX_TRIBE> tribe_color = { RED,LIGHTGRAY,ORANGE,BLUE };
 
 
 class Tribe;
