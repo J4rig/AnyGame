@@ -11,7 +11,7 @@ public:
 
 	vector<shared_ptr<Task>> tasks;
 
-	vector<shared_ptr<Combat>> targets;
+	vector<shared_ptr<Target>> targets;
 
 
 	vector<shared_ptr<Generator>> generators;

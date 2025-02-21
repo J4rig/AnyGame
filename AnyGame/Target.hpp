@@ -1,10 +1,12 @@
 #pragma once
 #include "any_game.hpp"
 
-class Combat {
+class Target {
 public:
 	int id;
-	Vector2 pos;
+	int tribe;
+
+	Vector2* pos;
 	float r;
 
 	int max_health;
@@ -15,11 +17,11 @@ public:
 	int damage;
 
 	float time_to_attack = 0.0f;
-	float attack_cooldown = 3.0f;
+	float attack_cooldown = 1.0f;
 
-	Combat(int id, Vector2 pos, float r, int max_health, int defence, int damage);
+	Target(int id, int tribe, Vector2* pos, float r, int max_health, int defence, int damage);
 
-	void attack(weak_ptr<Combat>& target);
+	void attack(weak_ptr<Target> target);
 
 	bool canAttack() const;
 	bool isDead() const;

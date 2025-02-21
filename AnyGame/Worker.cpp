@@ -6,8 +6,8 @@
 
 #include <iostream>
 
-Worker::Worker(int id, int tribe, Vector2 pos, float speed) :
-	id(id), tribe(tribe), pos(pos), speed(speed) {
+Worker::Worker(int id, int tribe, Vector2 pos, weak_ptr<Target> target, float speed) :
+	id(id), tribe(tribe), pos(pos), target(target), speed(speed) {
 };
 
 

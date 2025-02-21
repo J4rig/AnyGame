@@ -6,13 +6,13 @@ public:
 	int id;
 	Vector2 pos;
 
-	weak_ptr<Combat> combat;
+	weak_ptr<Target> combat;
 
-	weak_ptr<Combat> target = weak_ptr<Combat>();
+	weak_ptr<Target> target = weak_ptr<Target>();
 
-	Raider(int id, Vector2 pos, weak_ptr<Combat> combat);
+	Raider(int id, Vector2 pos, weak_ptr<Target> combat);
 
-	void update(vector<shared_ptr<Combat>> targets);
+	void update(vector<weak_ptr<Target>> targets);
 
 	void draw() const;
 };

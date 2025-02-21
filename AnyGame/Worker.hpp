@@ -17,6 +17,8 @@ public:
 	float r = 10.0f;
 	float speed;
 
+	weak_ptr<Target> target;
+
 	WORKER_STATES state = WORKER_STATES::IDLE;
 
 	int capacity = WORKER_CAPACITY;
@@ -31,7 +33,7 @@ public:
 	queue<weak_ptr<Storage>> targeted_storages = queue<weak_ptr<Storage>>();
 	weak_ptr<Task> targeted_task = weak_ptr<Task>();
 
-	Worker(int id, int tribe, Vector2 pos, float speed);
+	Worker(int id, int tribe, Vector2 pos, weak_ptr<Target> target, float speed);
 
 	void update(vector<shared_ptr<Resource>> resources, vector<shared_ptr<Storage>> storages, vector<shared_ptr<Task>> tasks);
 

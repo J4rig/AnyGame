@@ -131,7 +131,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="Combat.cpp" />
+    <ClCompile Include="Target.cpp" />
     <ClCompile Include="Construction.cpp" />
     <ClCompile Include="Forge.cpp" />
     <ClCompile Include="Generator.cpp" />
@@ -149,7 +149,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="any_game.hpp" />
-    <ClInclude Include="Combat.hpp" />
+    <ClInclude Include="Target.hpp" />
     <ClInclude Include="Construction.hpp" />
     <ClInclude Include="Forge.hpp" />
     <ClInclude Include="Generator.hpp" />

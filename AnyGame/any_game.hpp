@@ -38,7 +38,7 @@ class Storage;
 
 class Task;
 
-class Combat;
+class Target;
 
 
 
@@ -72,7 +72,7 @@ weak_ptr<Storage> findStorageToTake(Vector2 point, vector<shared_ptr<Storage>> s
 
 weak_ptr<Task> findTask(Vector2 point, vector<shared_ptr<Task>> tasks);
 
-weak_ptr<Combat> findTarget(Vector2 point, weak_ptr<Combat> attacker, vector<shared_ptr<Combat>> targets);
+weak_ptr<Target> findTarget(Vector2 point, weak_ptr<Target> attacker, vector<weak_ptr<Target>> targets);
 
 array<int, MAX_TYPE> hasTypes(array<int, MAX_TYPE> stored_types, array<int, MAX_TYPE> types);
 

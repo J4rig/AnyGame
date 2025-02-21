@@ -3,7 +3,7 @@
 #include "Storage.hpp"
 #include "Task.hpp"
 #include "Resource.hpp"
-#include "Combat.hpp"
+#include "Target.hpp"
 
 #include <iostream>
 #include <algorithm>
@@ -154,17 +154,17 @@ weak_ptr<Task> findTask(Vector2 point, vector<shared_ptr<Task>> tasks) {
 }
 
 
-weak_ptr<Combat> findTarget(Vector2 point, weak_ptr<Combat> attacker, vector<shared_ptr<Combat>> targets) {
+weak_ptr<Target> findTarget(Vector2 point, weak_ptr<Target> attacker, vector<weak_ptr<Target>> targets) {
 	float min_distance = numeric_limits<float>::max();
 	float new_distance;
 
-	weak_ptr<Combat> result = weak_ptr<Combat>();
+	weak_ptr<Target> result = weak_ptr<Target>();
 
-	for (shared_ptr<Combat> t : targets) {
-		if (attacker.lock() == t) {
+	for (weak_ptr<Target> t : targets) {
+		if (t.expired() || attacker.lock()->tribe == t.lock()->tribe) {
 			continue;
 		}
-		if ((new_distance = min(Vector2Distance(point, t->pos), min_distance)) != min_distance) {
+		if ((new_distance = min(Vector2Distance(point, (*t.lock()->pos)), min_distance)) != min_distance) {
 			min_distance = new_distance;
 			result = t;
 		}
