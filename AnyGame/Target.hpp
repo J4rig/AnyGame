@@ -17,7 +17,7 @@ public:
 	int damage;
 
 	float time_to_attack = 0.0f;
-	float attack_cooldown = 1.0f;
+	float attack_cooldown = 0.01f;
 
 	Target(int id, int tribe, Vector2* pos, float r, int max_health, int defence, int damage);
 

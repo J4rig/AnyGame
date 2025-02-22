@@ -268,6 +268,15 @@ int main() {
 		}
 
 		for (shared_ptr<Tribe> tribe : tribes) {
+
+			for (int target = 0; target < tribe->targets.size(); target++) {
+				if (tribe->targets[target]->isDead() && !tribe->targets[target]->canAttack()) {
+					tribe->targets.erase(tribe->targets.begin() + target);
+					target--;
+					continue;
+				}
+			}
+
 			for (shared_ptr<Settlement> settlement : tribe->settlements) {
 
 				for (shared_ptr<Stockpile> stockpile : settlement->stockpiles) {
@@ -282,16 +291,17 @@ int main() {
 					}
 				}
 
-				for (shared_ptr<Worker> worker : settlement->workers) {
-					worker->update(resources, settlement->storages, settlement->tasks);
-				}
-
-				for (int target = 0; target < tribe->targets.size(); target++) {
-					if (tribe->targets[target]->isDead() && !tribe->targets[target]->canAttack()) {
-						tribe->targets.erase(tribe->targets.begin() + target);
-						target--;
+				for (int worker = 0; worker < settlement->workers.size(); worker++) {
+					if (settlement->workers[worker]->target.expired()) {
+						for (int type : settlement->workers[worker]->die()) {
+							shared_ptr<Resource> new_resource = make_shared<Resource>(resource_id++, settlement->workers[worker]->pos, type);
+							resources.emplace_back(new_resource);
+						}
+						settlement->workers.erase(settlement->workers.begin() + worker);
+						worker--;
 						continue;
 					}
+					settlement->workers[worker]->update(resources, settlement->storages, settlement->tasks);
 				}
 
 				for (int raider = 0; raider < tribe->raiders.size(); raider++) {

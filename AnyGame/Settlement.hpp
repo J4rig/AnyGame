@@ -11,9 +11,6 @@ public:
 
 	vector<shared_ptr<Task>> tasks;
 
-	vector<shared_ptr<Target>> targets;
-
-
 	vector<shared_ptr<Generator>> generators;
 
 	vector<shared_ptr<Stockpile>> stockpiles;

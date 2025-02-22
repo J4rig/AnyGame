@@ -10,6 +10,23 @@ Worker::Worker(int id, int tribe, Vector2 pos, weak_ptr<Target> target, float sp
 	id(id), tribe(tribe), pos(pos), target(target), speed(speed) {
 };
 
+vector<int> Worker::die() {
+	if (state == WORKER_STATES::COLLECTING) {
+		for (weak_ptr<Resource> resource : targeted_resources) {
+			resource.lock()->occupied = false;
+		}
+		while(!types_to_deliver.empty()) {
+			targeted_storages.front().lock()->will_be[types_to_deliver.front()]++;
+			types_to_deliver.erase(types_to_deliver.begin());
+			amount_to_deliver.front()--;
+			if (amount_to_deliver.front() == 0) {
+				targeted_storages.pop();
+			}
+		}
+		return collected_types;
+	}
+}
+
 
 void Worker::draw() const{
 	DrawRing(pos, 4 /*resource radius -1 so it overlaps and hides imperfections*/, r, 0, 360, 0, tribe_color[tribe]);
@@ -60,6 +77,8 @@ bool Worker::collectResources(vector<shared_ptr<Resource>> resources, vector<sha
 	bool first = true;
 
 	vector<int> types = {};
+	types_to_deliver = {};
+
 	for (weak_ptr<Resource> r : targeted_resources) {
 		types.emplace_back(r.lock()->type);
 	}
@@ -74,6 +93,7 @@ bool Worker::collectResources(vector<shared_ptr<Resource>> resources, vector<sha
 				if (new_targeted_storage.lock()->hasSpace(tmp_resources[r].lock()->type)) {
 					new_targeted_storage.lock()->will_be[tmp_resources.front().lock()->type]++;
 					targeted_resources.emplace_back(tmp_resources[r]);
+					types_to_deliver.emplace_back(types.front());
 					tmp_resources.erase(tmp_resources.begin() + r);
 					types.erase(types.begin() + r);
 					r--;
@@ -262,6 +282,7 @@ void Worker::update(vector<shared_ptr<Resource>> resources,
 					cout << "delivered to storage " << targeted_storages.front().lock()->id << " <-id\n";
 					targeted_storages.front().lock()->is[collected_types.front()]++;
 					collected_types.erase(collected_types.begin());
+					types_to_deliver.erase(types_to_deliver.begin());
 				}
 
 				amount_to_deliver.pop();

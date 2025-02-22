@@ -46,4 +46,6 @@ public:
 	bool transportResources(vector<shared_ptr<Storage>> storages);
 
 	bool completeTask(vector<shared_ptr<Task>> tasks);
+
+	vector<int> die();
 };
