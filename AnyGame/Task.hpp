@@ -24,4 +24,6 @@ public:
 	bool isCompleted() const;
 };
 
-inline auto const task_cmp = [](shared_ptr<Task > left, shared_ptr<Task> right) {return left->priority > right->priority; };
+inline auto const task_cmp_shared = [](shared_ptr<Task > left, shared_ptr<Task> right) {return left->priority > right->priority; };
+
+inline auto const task_cmp_weak = [](weak_ptr<Task > left, weak_ptr<Task> right) {return left.lock()->priority > right.lock()->priority; };

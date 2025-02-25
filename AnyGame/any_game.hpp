@@ -88,6 +88,8 @@ array<int, MAX_TYPE> canBeStored(vector<shared_ptr<Storage>> storages);
 
 void insertStorageShared(vector<shared_ptr<Storage>>& storages, shared_ptr<Storage> storage);
 
-void insertStorageWeak(vector<weak_ptr<Storage>> &storages, shared_ptr<Storage> storage);
+void insertStorageWeak(vector<weak_ptr<Storage>>& storages, shared_ptr<Storage> storage);
 
-void insertTask(vector<shared_ptr<Task>> &tasks, shared_ptr<Task> task);
+void insertTaskShared(vector<shared_ptr<Task>>& tasks, shared_ptr<Task> task);
+
+void insertTaskWeak(vector<weak_ptr<Task>>& tasks, shared_ptr<Task> task);

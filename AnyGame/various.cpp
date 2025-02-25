@@ -262,7 +262,12 @@ void insertStorageWeak(vector<weak_ptr<Storage>>& storages, shared_ptr<Storage> 
 	storages.insert(pos, storage);
 }
 
-void insertTask(vector<shared_ptr<Task>>& tasks, shared_ptr<Task> task) {
-	auto pos = lower_bound(tasks.begin(), tasks.end(), task, task_cmp);
+void insertTaskShared(vector<shared_ptr<Task>>& tasks, shared_ptr<Task> task) {
+	auto pos = lower_bound(tasks.begin(), tasks.end(), task, task_cmp_shared);
+	tasks.insert(pos, task);
+}
+
+void insertTaskWeak(vector<weak_ptr<Task>>& tasks, shared_ptr<Task> task) {
+	auto pos = lower_bound(tasks.begin(), tasks.end(), task, task_cmp_weak);
 	tasks.insert(pos, task);
 }
