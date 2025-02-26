@@ -24,6 +24,25 @@ constexpr auto STOCKPILE_CAPACITY = 10;
 
 using namespace std;
 
+inline int raider_id = 0;
+inline int construction_id = 0;
+inline int stockpile_id = 0;
+inline int resource_id = 0;
+inline int worker_id = 0;
+inline int generator_id = 0;
+inline int forge_id = 0;
+
+inline int storage_id = 0;
+inline int task_id = 0;
+inline int target_id = 0;
+
+inline int settlement_id = 0;
+inline int tribe_id = 0;
+
+inline int selected_tribe = -1;
+inline int selected_settlement = -1;
+
+
 inline const array<Color, MAX_TYPE> type_color = { MAGENTA, DARKGREEN, DARKBLUE, YELLOW };
 inline const array<Color, MAX_TRIBE> tribe_color = { RED,LIGHTGRAY,ORANGE,BLUE };
 

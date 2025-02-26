@@ -1,7 +1,7 @@
 #pragma once
 #include "any_game.hpp"
 
-class Storage {
+class Storage : enable_shared_from_this<Storage>{
 public:
 	int id;
 
@@ -15,11 +15,15 @@ public:
 
 	bool remove = false;
 
+	bool destroy = false;
+
 	array<int, MAX_TYPE> is = { 0 };
 	array<int, MAX_TYPE> will_be = { 0 };
 	array<int, MAX_TYPE> can_be = { 0 };
 
 	Storage(int id, Vector2 pos, int priority, int capacity, array<int, MAX_TYPE> limits, bool can_take);
+
+	void die(vector<shared_ptr<Worker>>& workers, vector<shared_ptr<Resource>>& resources);
 
 	int isStored();
 	int aboutToBeStored();

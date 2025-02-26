@@ -10,6 +10,77 @@ Worker::Worker(int id, int tribe, Vector2 pos, weak_ptr<Target> target, float sp
 	id(id), tribe(tribe), pos(pos), target(target), speed(speed) {
 };
 
+void Worker::forgetStorage(shared_ptr<Storage> storage, vector<shared_ptr<Resource>>& resources) {
+	if (state == WORKER_STATES::IDLE) {
+		targeted_storages = {};
+		return;
+	}
+
+	if (state == WORKER_STATES::OPERATING) {
+		targeted_storages = {};
+		return;
+	}
+
+	if (state == WORKER_STATES::COLLECTING) {
+		int sum = 0;
+		int ct_size = collected_types.size();
+		for (int s = 0; s < targeted_storages.size(); s++) {
+			if (targeted_storages[s].lock() == storage) {
+				int aomunt_to_delete = amount_to_deliver[s];
+				amount_to_deliver.erase(amount_to_deliver.begin() + s);
+				bool all_deleted = false;
+				for (int ct = 0; ct < collected_types.size(); ct++) {
+					if (sum == 0) {
+						int d = min(aomunt_to_delete, (int)collected_types.size() - ct);
+						for (int t = ct; t < ct + d; t++) {
+							shared_ptr<Resource> new_resource = make_shared<Resource>(resource_id++, pos, collected_types[t]);
+							resources.emplace_back(new_resource);
+						}
+						collected_types.erase(collected_types.begin() + ct, collected_types.begin() + ct + d);
+						aomunt_to_delete -= d;
+						if (aomunt_to_delete == 0) {
+							all_deleted = true;
+						}
+						break;
+					}
+					else {
+						sum--;
+					}
+				}
+
+				for (int ttd = 0; ttd < types_to_deliver.size() - ct_size; ttd++) {
+					if (all_deleted) { break; };
+					if (sum == 0) {
+						cout << types_to_deliver.size() - ct_size << "\n";
+						types_to_deliver.erase(types_to_deliver.begin() + ttd, types_to_deliver.begin() + ttd + aomunt_to_delete);
+
+						for (int r = 0; r < aomunt_to_delete; r++) {
+							targeted_resources[r].lock()->occupied = false;
+						}
+						targeted_resources.erase(targeted_resources.begin(), targeted_resources.begin() + aomunt_to_delete);
+						break;
+					}
+					else {
+						sum--;
+					}
+				}
+
+				targeted_storages.erase(targeted_storages.begin() + s);
+				break;
+			}
+			else {
+				sum += amount_to_deliver[s];
+			}
+		}
+	}
+
+	if (state == WORKER_STATES::TRANSPORTING) {
+
+	}
+
+	
+}
+
 vector<int> Worker::die() {
 	if (state == WORKER_STATES::COLLECTING) {
 		for (weak_ptr<Resource> resource : targeted_resources) {
@@ -20,7 +91,7 @@ vector<int> Worker::die() {
 			types_to_deliver.erase(types_to_deliver.begin());
 			amount_to_deliver.front()--;
 			if (amount_to_deliver.front() == 0) {
-				targeted_storages.pop();
+				targeted_storages.erase(targeted_storages.begin());
 			}
 		}
 		return collected_types;
@@ -32,8 +103,8 @@ vector<int> Worker::die() {
 			types_to_deliver.erase(types_to_deliver.begin());
 			amount_to_take.front()--;
 			if (amount_to_take.front() <= 0) {
-				targeted_storages.pop();
-				amount_to_take.pop();
+				targeted_storages.erase(targeted_storages.begin());
+				amount_to_take.erase(amount_to_take.begin());
 			}
 		}
 		int i = 0;
@@ -43,8 +114,8 @@ vector<int> Worker::die() {
 					i++;
 					amount_to_deliver.front()--;
 				}
-				amount_to_deliver.pop();
-				targeted_storages.pop();
+				amount_to_deliver.erase(amount_to_deliver.begin());
+				targeted_storages.erase(targeted_storages.begin());
 		}
 		return collected_types;
 	}
@@ -130,14 +201,14 @@ bool Worker::collectResources(vector<shared_ptr<Resource>> resources, vector<sha
 
 					if (first) {
 						while (!targeted_storages.empty()) {
-							targeted_storages.pop();
+							targeted_storages.erase(targeted_storages.begin());
 						}
 						first = false;
 					}
 
 					if (targeted_storages.empty() || new_targeted_storage.lock() != targeted_storages.front().lock()) {
-						amount_to_deliver.push(1);
-						targeted_storages.push(new_targeted_storage);
+						amount_to_deliver.emplace_back(1);
+						targeted_storages.emplace_back(new_targeted_storage);
 					}
 					else {
 						amount_to_deliver.front()++;
@@ -192,8 +263,8 @@ bool Worker::transportResources(vector<shared_ptr<Storage>> storages) {
 		}
 
 		if (targeted_storages.empty() || targeted_storages.front().lock() != take_from) {
-			targeted_storages.push(take_from);
-			amount_to_take.push((int)types_to_pickup.size());
+			targeted_storages.emplace_back(take_from);
+			amount_to_take.emplace_back((int)types_to_pickup.size());
 		}
 		else {
 			amount_to_take.front() += (int)types_to_pickup.size();
@@ -201,7 +272,7 @@ bool Worker::transportResources(vector<shared_ptr<Storage>> storages) {
 
 		if (deliver_queue.empty() || deliver_queue.front().lock() != deliver_to) {
 			deliver_queue.push(deliver_to);
-			amount_to_deliver.push((int)types_to_pickup.size());
+			amount_to_deliver.emplace_back((int)types_to_pickup.size());
 
 		}
 		else {
@@ -218,7 +289,7 @@ bool Worker::transportResources(vector<shared_ptr<Storage>> storages) {
 	}
 
 	while (!deliver_queue.empty()) {
-		targeted_storages.push(deliver_queue.front());
+		targeted_storages.emplace_back(deliver_queue.front());
 		deliver_queue.pop();
 	}
 
@@ -269,18 +340,17 @@ void Worker::update(vector<shared_ptr<Resource>> resources,
 		}
 		else {
 			if (!targeted_storages.empty() && targeted_storages.front().expired()) {
-				targeted_storages.pop();
+				targeted_storages.erase(targeted_storages.begin());
 			}
 
 			weak_ptr<Storage> tmp = findStorageToIdle(pos, storages);
 			if (!tmp.expired()) {
-				targeted_storages.push(tmp);
+				targeted_storages.emplace_back(tmp);
 			}
 		}
 	}
 
 	else if (state == WORKER_STATES::COLLECTING) {
-
 		if (!targeted_resources.empty()) {
 			if (Vector2Distance(pos, targeted_resources.front().lock()->pos) <= 0.5f) {
 				targeted_resources.front().lock()->taken = true;
@@ -292,20 +362,19 @@ void Worker::update(vector<shared_ptr<Resource>> resources,
 				pos = Vector2MoveTowards(pos, targeted_resources.front().lock()->pos, SPEED_MOD * speed * GetFrameTime());
 			}
 		}
-		else {
-
+		else if (!collected_types.empty() && !targeted_storages.empty()) {
 			if (Vector2Distance(pos, targeted_storages.front().lock()->pos) <= 40 + 10) {
-
+				cout << amount_to_deliver.front() << "\n";
 				for (int i = 0; i < amount_to_deliver.front(); i++) {
-					targeted_storages.front().lock()->is[collected_types.front()]++;
-					collected_types.erase(collected_types.begin());
-					types_to_deliver.erase(types_to_deliver.begin());
+					targeted_storages.front().lock()->is[collected_types[i]]++;
 				}
+				collected_types.erase(collected_types.begin(), collected_types.begin() + amount_to_deliver.front());
+				types_to_deliver.erase(types_to_deliver.begin(), types_to_deliver.begin() + amount_to_deliver.front());
 
-				amount_to_deliver.pop();
+				amount_to_deliver.erase(amount_to_deliver.begin());
 
 				if (targeted_storages.size() > 1) {
-					targeted_storages.pop();
+					targeted_storages.erase(targeted_storages.begin());
 				}
 				else {
 					state = WORKER_STATES::IDLE;
@@ -315,6 +384,10 @@ void Worker::update(vector<shared_ptr<Resource>> resources,
 			else {
 				pos = Vector2MoveTowards(pos, targeted_storages.front().lock()->pos, SPEED_MOD * speed * GetFrameTime());
 			}
+		}
+
+		else {
+			state = WORKER_STATES::IDLE;
 		}
 	}
 
@@ -328,8 +401,8 @@ void Worker::update(vector<shared_ptr<Resource>> resources,
 					types_to_deliver.erase(types_to_deliver.begin());
 					amount_to_take.front()--;
 					if (amount_to_take.front() <= 0) {
-						targeted_storages.pop();
-						amount_to_take.pop();
+						targeted_storages.erase(targeted_storages.begin());
+						amount_to_take.erase(amount_to_take.begin());
 					}
 				}
 				else { // waiting for resorce to be delivered
@@ -349,8 +422,8 @@ void Worker::update(vector<shared_ptr<Resource>> resources,
 					amount_to_deliver.front()--;
 				}
 
-				amount_to_deliver.pop();
-				targeted_storages.pop();
+				amount_to_deliver.erase(amount_to_deliver.begin());
+				targeted_storages.erase(targeted_storages.begin());
 
 				if (collected_types.empty()) {
 					state = WORKER_STATES::IDLE;

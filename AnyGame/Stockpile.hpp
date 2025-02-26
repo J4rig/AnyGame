@@ -11,8 +11,9 @@ public:
 
 	weak_ptr<Construction> construction;
 	weak_ptr<Storage> storage;
+	weak_ptr<Target> target;
 
-	Stockpile(int id, int tribe, Vector2 pos, float r, weak_ptr < Construction> construction, weak_ptr <Storage> storage);
+	Stockpile(int id, int tribe, Vector2 pos, float r, weak_ptr<Construction> construction, weak_ptr<Storage> storage, weak_ptr<Target> target);
 
 	void draw() const;
 };

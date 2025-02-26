@@ -20,24 +20,6 @@
 #include <iostream>
 #include <string>
 
-int raider_id = 0;
-int construction_id = 0;
-int stockpile_id = 0;
-int resource_id = 0;
-int worker_id = 0;
-int generator_id = 0;
-int forge_id = 0;
-
-int storage_id = 0;
-int task_id = 0;
-int target_id = 0;
-
-int settlement_id = 0;
-int tribe_id = 0;
-
-int selected_tribe = -1;
-int selected_settlement = -1;
-
 int main() {
 
 	bool pause = false;
@@ -114,7 +96,9 @@ int main() {
 		if (IsKeyReleased(KEY_DELETE)) {
 			for (shared_ptr<Tribe> tribe : tribes) {
 				for (shared_ptr<Target> target : tribe->targets) {
-					target->health = 0;
+					if (target->health == 30) {
+						target->health = 0;
+					}
 				}
 			}
 		}
@@ -132,8 +116,13 @@ int main() {
 			shared_ptr<Storage> new_storage = make_shared<Storage>(storage_id++, mouse_pos, 0, STOCKPILE_CAPACITY, limits, true);
 			insertStorageWeak(storages, new_storage);
 
+			//target
+			shared_ptr<Target> new_target = make_shared<Target>(target_id++, selected_tribe, &mouse_pos, 10, 30, 0, 0);
+			targets.emplace_back(new_target);
+			
+
 			// stockpile
-			shared_ptr<Stockpile> new_stockpile = make_shared<Stockpile>(stockpile_id++, selected_tribe, mouse_pos, 40.0f, weak_ptr<Construction>(), new_storage);
+			shared_ptr<Stockpile> new_stockpile = make_shared<Stockpile>(stockpile_id++, selected_tribe, mouse_pos, 40.0f, weak_ptr<Construction>(), new_storage, new_target);
 			stockpiles.emplace_back(new_stockpile);
 
 			// settlement
@@ -147,7 +136,9 @@ int main() {
 
 			// tribe
 			shared_ptr<Tribe> new_tribe = make_shared<Tribe>(selected_tribe, new_settlement);
+			new_tribe->targets.emplace_back(new_target);
 			tribes.emplace_back(new_tribe);
+
 			
 		}
 
@@ -161,12 +152,17 @@ int main() {
 			shared_ptr<Storage> new_storage = make_shared<Storage>(storage_id++, mouse_pos, 0, STOCKPILE_CAPACITY, limits, true);
 			insertStorageWeak(storages, new_storage);
 
+			//target
+			shared_ptr<Target> new_target = make_shared<Target>(target_id++, selected_tribe, &mouse_pos, 10, 30, 0, 0);
+			targets.emplace_back(new_target);
+			tribes[selected_tribe]->targets.emplace_back(new_target);
+
 			// stockpile
-			shared_ptr<Stockpile> new_stockpile = make_shared<Stockpile>(stockpile_id++, selected_tribe, mouse_pos, 40.0f, weak_ptr<Construction>(), new_storage);
+			shared_ptr<Stockpile> new_stockpile = make_shared<Stockpile>(stockpile_id++, selected_tribe, mouse_pos, 40.0f, weak_ptr<Construction>(), new_storage, new_target);
 			stockpiles.emplace_back(new_stockpile);
 
 			// settlement
-			selected_settlement = tribes[selected_tribe]->settlements.size();
+			selected_settlement = (int)tribes[selected_tribe]->settlements.size();
 			shared_ptr<Settlement> new_settlement = make_shared<Settlement>(selected_settlement, mouse_pos, 1);
 
  			insertStorageShared(new_settlement->storages, new_storage);
@@ -219,8 +215,13 @@ int main() {
 			shared_ptr<Storage> new_storage = make_shared<Storage>(storage_id++, mouse_pos, 0, STOCKPILE_CAPACITY, limits, true);
 			insertStorageWeak(storages, new_storage);
 
+			//target
+			shared_ptr<Target> new_target = make_shared<Target>(target_id++, selected_tribe, &mouse_pos, 10, 30, 0, 0);
+			targets.emplace_back(new_target);
+			tribes[selected_tribe]->targets.emplace_back(new_target);
+
 			// stockpile
-			shared_ptr<Stockpile> new_stockpile = make_shared<Stockpile>(stockpile_id++, selected_tribe, mouse_pos, 40.0f, weak_ptr<Construction>(), new_storage);
+			shared_ptr<Stockpile> new_stockpile = make_shared<Stockpile>(stockpile_id++, selected_tribe, mouse_pos, 40.0f, weak_ptr<Construction>(), new_storage, new_target);
 			stockpiles.emplace_back(new_stockpile);
 
 			insertStorageShared(tribes[selected_tribe]->settlements[selected_settlement]->storages, new_storage);
@@ -245,8 +246,13 @@ int main() {
 			constructions.emplace_back(new_construction);
 			tribes[selected_tribe]->settlements[selected_settlement]->constructions.emplace_back(new_construction);
 
-			//storage
-			shared_ptr<Stockpile> new_stockpile = make_shared<Stockpile>(stockpile_id++, selected_tribe, mouse_pos, 40.0f, new_construction, weak_ptr<Storage>());
+			//target
+			shared_ptr<Target> new_target = make_shared<Target>(target_id++, selected_tribe, &mouse_pos, 10, 30, 0, 0);
+			targets.emplace_back(new_target);
+			tribes[selected_tribe]->targets.emplace_back(new_target);
+
+			//stockpile
+			shared_ptr<Stockpile> new_stockpile = make_shared<Stockpile>(stockpile_id++, selected_tribe, mouse_pos, 40.0f, new_construction, weak_ptr<Storage>(), new_target);
 			stockpiles.emplace_back(new_stockpile);
 			tribes[selected_tribe]->settlements[selected_settlement]->stockpiles.emplace_back(new_stockpile);
 		}
@@ -394,21 +400,49 @@ int main() {
 				}
 
 				for (int storage = 0; storage < settlement->storages.size(); storage++) {
+					if (settlement->storages[storage]->destroy) {
+						for (shared_ptr<Worker> worker : settlement->workers) {
+							worker->forgetStorage(settlement->storages[storage], resources);
+						}
+
+						for (int i = 0; i < MAX_TYPE; i++) {
+							for (int j = 0; j < settlement->storages[storage]->is[i]; j++) {
+								shared_ptr<Resource> new_resource = make_shared<Resource>(resource_id++, settlement->storages[storage]->pos, i);
+								resources.emplace_back(new_resource);
+							}
+						}
+						settlement->storages[storage]->remove = true;
+					}
+
 					if (settlement->storages[storage]->remove) {
 						settlement->storages.erase(settlement->storages.begin() + storage);
 						storage--;
 					}
 				}
 
-				for (shared_ptr<Stockpile> stockpile : settlement->stockpiles) {
-					if (stockpile->construction.expired() && stockpile->storage.expired()) {
+				for (int stockpile = 0; stockpile < settlement->stockpiles.size(); stockpile++) {
+					if (settlement->stockpiles[stockpile]->target.expired()) {
+						if (settlement->stockpiles[stockpile]->construction.expired()) {
+							settlement->stockpiles[stockpile]->storage.lock()->destroy = true;
+						}
+						else if (!settlement->stockpiles[stockpile]->construction.lock()->storage.expired()) {
+							settlement->stockpiles[stockpile]->construction.lock()->storage.lock()->destroy = true;
+							//delete construction task
+						}
+
+						settlement->stockpiles.erase(settlement->stockpiles.begin() + stockpile);
+						stockpile--;
+						continue;
+					}
+
+					if (settlement->stockpiles[stockpile]->construction.expired() && settlement->stockpiles[stockpile]->storage.expired()) {
 						array<int, MAX_TYPE> limits = { 0 };
 						limits.fill(STOCKPILE_CAPACITY);
 
-						shared_ptr<Storage> new_storage = make_shared<Storage>(storage_id++, stockpile->pos, 0, 10, limits, true);
+						shared_ptr<Storage> new_storage = make_shared<Storage>(storage_id++, settlement->stockpiles[stockpile]->pos, 0, STOCKPILE_CAPACITY, limits, true);
 						insertStorageWeak(storages, new_storage);
 						insertStorageShared(settlement->storages, new_storage);
-						stockpile->storage = new_storage;
+						settlement->stockpiles[stockpile]->storage = new_storage;
 					}
 				}
 			}

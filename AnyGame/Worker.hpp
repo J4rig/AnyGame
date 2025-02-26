@@ -26,11 +26,11 @@ public:
 	vector<int> collected_types = vector<int>(); // types picked up
 
 	vector<int> types_to_deliver = vector<int>(); // types to pick up and deliver
-	queue<int> amount_to_take = queue<int>(); // how many resources does worker take from targeted storages
-	queue<int> amount_to_deliver = queue<int>(); // how many resources does worker deliver to targeted storages
+	vector<int> amount_to_take = vector<int>(); // how many resources does worker take from targeted storages
+	vector<int> amount_to_deliver = vector<int>(); // how many resources does worker deliver to targeted storages
 
 	vector<weak_ptr<Resource>> targeted_resources = vector<weak_ptr<Resource>>();
-	queue<weak_ptr<Storage>> targeted_storages = queue<weak_ptr<Storage>>();
+	vector<weak_ptr<Storage>> targeted_storages = vector<weak_ptr<Storage>>();
 	weak_ptr<Task> targeted_task = weak_ptr<Task>();
 
 	Worker(int id, int tribe, Vector2 pos, weak_ptr<Target> target, float speed);
@@ -48,4 +48,6 @@ public:
 	bool completeTask(vector<shared_ptr<Task>> tasks);
 
 	vector<int> die();
+
+	void forgetStorage(shared_ptr<Storage> storage, vector<shared_ptr<Resource>>& resources);
 };

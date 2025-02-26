@@ -5,8 +5,8 @@
 
 #include <string>
 
-Stockpile::Stockpile(int id, int tribe, Vector2 pos, float r, weak_ptr <Construction> construction, weak_ptr <Storage> storage) :
-	id(id), tribe(tribe), pos(pos), r(r), construction(construction), storage(storage) {
+Stockpile::Stockpile(int id, int tribe, Vector2 pos, float r, weak_ptr <Construction> construction, weak_ptr <Storage> storage, weak_ptr<Target> target) :
+	id(id), tribe(tribe), pos(pos), r(r), construction(construction), storage(storage), target(target) {
 };
 
 void Stockpile::draw() const {
