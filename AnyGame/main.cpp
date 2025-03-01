@@ -117,7 +117,7 @@ int main() {
 			insertStorageWeak(storages, new_storage);
 
 			//target
-			shared_ptr<Target> new_target = make_shared<Target>(target_id++, selected_tribe, &mouse_pos, 10, 30, 0, 0);
+			shared_ptr<Target> new_target = make_shared<Target>(target_id++, selected_tribe, &mouse_pos, 10, 20, 0, 0);
 			targets.emplace_back(new_target);
 			
 
@@ -216,7 +216,7 @@ int main() {
 			insertStorageWeak(storages, new_storage);
 
 			//target
-			shared_ptr<Target> new_target = make_shared<Target>(target_id++, selected_tribe, &mouse_pos, 10, 30, 0, 0);
+			shared_ptr<Target> new_target = make_shared<Target>(target_id++, selected_tribe, &mouse_pos, 10, 20, 0, 0);
 			targets.emplace_back(new_target);
 			tribes[selected_tribe]->targets.emplace_back(new_target);
 
@@ -225,7 +225,6 @@ int main() {
 			stockpiles.emplace_back(new_stockpile);
 
 			insertStorageShared(tribes[selected_tribe]->settlements[selected_settlement]->storages, new_storage);
-			tribes[selected_tribe]->settlements[selected_settlement]->storages.emplace_back(new_storage);
 			tribes[selected_tribe]->settlements[selected_settlement]->stockpiles.emplace_back(new_stockpile);
 		}
 
@@ -234,10 +233,8 @@ int main() {
 
 			//construction storage
 			std::array<int, MAX_TYPE> limits = { 0 };
-			limits[0] = 1;
-			limits[1] = 1;
-			limits[2] = 1;
-			shared_ptr<Storage> new_storage = make_shared<Storage>(storage_id++, mouse_pos, 2, 3, limits, false);
+			limits[0] = 2;
+			shared_ptr<Storage> new_storage = make_shared<Storage>(storage_id++, mouse_pos, 2, 2, limits, false);
 			insertStorageWeak(storages, new_storage);
 			insertStorageShared(tribes[selected_tribe]->settlements[selected_settlement]->storages, new_storage);
 
@@ -260,16 +257,26 @@ int main() {
 		if (IsKeyReleased(KEY_F) && selected_settlement != -1) {
 			Vector2 mouse_pos = GetMousePosition();
 
-			//storage
+			//construction storage
 			std::array<int, MAX_TYPE> limits = { 0 };
 			limits[1] = 1;
 			limits[2] = 1;
-			shared_ptr<Storage> new_storage = make_shared<Storage>(stockpile_id++, mouse_pos, 1, 2, limits, true);
-			insertStorageShared(tribes[selected_tribe]->settlements[selected_settlement]->storages, new_storage);
+			shared_ptr<Storage> new_storage = make_shared<Storage>(storage_id++, mouse_pos, 2, 2, limits, false);
 			insertStorageWeak(storages, new_storage);
+			insertStorageShared(tribes[selected_tribe]->settlements[selected_settlement]->storages, new_storage);
+
+			//construction
+			shared_ptr<Construction> new_construction = make_shared<Construction>(construction_id++, mouse_pos, new_storage, weak_ptr<Task>());
+			constructions.emplace_back(new_construction);
+			tribes[selected_tribe]->settlements[selected_settlement]->constructions.emplace_back(new_construction);
+
+			//target
+			shared_ptr<Target> new_target = make_shared<Target>(target_id++, selected_tribe, &mouse_pos, 10, 30, 0, 0);
+			targets.emplace_back(new_target);
+			tribes[selected_tribe]->targets.emplace_back(new_target);
 
 			//forge
-			shared_ptr<Forge> new_forge = make_shared<Forge>(forge_id++, mouse_pos, 40, new_storage);
+			shared_ptr<Forge> new_forge = make_shared<Forge>(forge_id++, mouse_pos, 40,new_construction,new_target);
 			tribes[selected_tribe]->settlements[selected_settlement]->forges.emplace_back(new_forge);
 			forges.emplace_back(new_forge);
 		}
@@ -362,6 +369,17 @@ int main() {
 				}
 
 				for (int forge = 0; forge < settlement->forges.size(); forge++) {
+
+					if (settlement->forges[forge]->construction.expired() && settlement->forges[forge]->storage.expired()) {
+						array<int, MAX_TYPE> limits = { 0 };
+						limits[1] = 1;
+						limits[2] = 1;
+						shared_ptr<Storage> new_storage = make_shared<Storage>(stockpile_id++, settlement->forges[forge]->pos, 1, 2, limits, true);
+						insertStorageShared(tribes[selected_tribe]->settlements[selected_settlement]->storages, new_storage);
+						insertStorageWeak(storages, new_storage);
+						settlement->forges[forge]->storage = new_storage;
+					}
+
 					if (!settlement->forges[forge]->task.expired() && settlement->forges[forge]->task.lock()->isCompleted() && !settlement->forges[forge]->task.lock()->finished) {
 						settlement->forges[forge]->storage.lock()->is = { 0 };
 						settlement->forges[forge]->storage.lock()->will_be = { 0 };
@@ -373,7 +391,7 @@ int main() {
 						settlement->forges[forge]->task.lock()->finished = true;
 					}
 
-					if (settlement->forges[forge]->task.expired() && settlement->forges[forge]->storage.lock()->isFull(-1)) {
+					if (settlement->forges[forge]->task.expired() && !settlement->forges[forge]->storage.expired() && settlement->forges[forge]->storage.lock()->isFull(-1)) {
 						shared_ptr<Task> new_task = make_shared<Task>(task_id++, settlement->forges[forge]->pos, 2, 3.0f, 1);
 						insertTaskShared(settlement->tasks, new_task);
 						insertTaskWeak(tasks, new_task);
