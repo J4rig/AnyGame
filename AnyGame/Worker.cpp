@@ -51,7 +51,6 @@ void Worker::forgetStorage(shared_ptr<Storage> storage, vector<shared_ptr<Resour
 				for (int ttd = 0; ttd < types_to_deliver.size() - ct_size; ttd++) {
 					if (all_deleted) { break; };
 					if (sum == 0) {
-						cout << types_to_deliver.size() - ct_size << "\n";
 						types_to_deliver.erase(types_to_deliver.begin() + ttd, types_to_deliver.begin() + ttd + aomunt_to_delete);
 
 						for (int r = 0; r < aomunt_to_delete; r++) {
@@ -75,121 +74,37 @@ void Worker::forgetStorage(shared_ptr<Storage> storage, vector<shared_ptr<Resour
 		return;
 	}
 
-	if (state == WORKER_STATES::TRANSPORTING) {
+	if (state == WORKER_STATES::TRANSPORTING) { 
 		for (int s = 0; s < targeted_storages.size(); s++) {
 			if (targeted_storages[s].lock() == storage) {
-				if (s < amount_to_take.size()) { //delete an output storage
-					int amount_collected = collected_types.size();
-
-					int amount_to_skip = 0;
-					for (int skip = 0; skip < s; skip++) {
-						amount_to_skip += amount_to_take[skip];
-					}
-
-					int amount_to_delete = amount_to_take[s];
-					vector<int> types_to_delete = vector<int>(types_to_deliver.begin() + amount_to_skip, types_to_deliver.begin() + amount_to_skip + amount_to_delete);
-					types_to_deliver.erase(types_to_deliver.begin() + amount_to_skip, types_to_deliver.begin() + amount_to_skip + amount_to_delete);
-					
-					int sum = 0;
-					amount_to_skip += amount_collected;
-					for (int i = 0; i < amount_to_deliver.size(); i++) {
-						if (amount_to_delete == 0) { break; };
-						for (int j = 0; j < amount_to_deliver[i]; j++) {
-							if (sum < amount_to_skip) {
-								sum++;
-							}
-							else {
-								amount_to_deliver[i]--;
-								j--;
-								amount_to_delete--;
-								targeted_storages[amount_to_take.size() + i].lock()->will_be[types_to_delete.front()]--;
-								types_to_delete.erase(types_to_delete.begin());
-							}
-						}
-					}
-
-					amount_to_take.erase(amount_to_take.begin() + s);
-					targeted_storages.erase(targeted_storages.begin() + s);
-					break;
-					
+				if ( 2* (collected_types.size() + s) < collected_types.size() + targeted_storages.size()) { //delete an output storage
+					targeted_storages[s + types_to_deliver.size() + collected_types.size()].lock()->will_be[types_to_deliver[s]]--;
+					targeted_storages.erase(targeted_storages.begin() + s + types_to_deliver.size() + collected_types.size());
+					targeted_storages.erase(targeted_storages.begin() + s); 
+					types_to_deliver.erase(types_to_deliver.begin() + s);
+					s--;
 				}
 				else { //delete an imput storage
-					int index = s - amount_to_take.size();
-					cout << "amount to deliver index " << index << "\n";
-					int amount_to_delete = amount_to_deliver[index];
-					cout << "amount to delete " << amount_to_delete << "\n";
-					int amount_collected = collected_types.size();
-					cout << "amount collected " << amount_collected << "\n";
-					int amount_to_skip = 0;
-					for (int skip = 0; skip < index; skip++) {
-						amount_to_skip += amount_to_deliver[skip];
-					}
-					cout << "amount to skip " << amount_to_skip << "\n";
+					int output_index = s - types_to_deliver.size() - collected_types.size();
 
-					int skipped = 0;
-					int deleted = 0;
-					cout << "in collected types\n";
-					for (int ct = 0; ct < collected_types.size(); ct++) {
-						if (amount_to_delete == deleted) { break; }
-						if (skipped < amount_to_skip) {
-							cout << "skipped\n";
-							skipped++;
-						}
-						else {
-							shared_ptr<Resource> new_resource = make_shared<Resource>(resource_id++, pos, collected_types.front());
-							resources.emplace_back(new_resource);
-							collected_types.erase(collected_types.begin() + ct);
-							ct--;
-							cout << "deleted\n";
-							deleted++;
-						}
+					if (output_index < 0) {
+						shared_ptr<Resource> new_resource = make_shared<Resource>(resource_id++, pos, collected_types[collected_types.size() + output_index]);
+						resources.emplace_back(new_resource);
+						collected_types.erase(collected_types.end() + output_index);
 					}
-
-					cout << "in types to deliver\n";
-					for (int ttd = 0; ttd < types_to_deliver.size(); ttd++) {
-						if (amount_to_delete == deleted) { break; }
-						if (skipped < amount_to_skip) {
-							cout << "skipped\n";
-							skipped++;
-						}
-						else {
-							types_to_deliver.erase(types_to_deliver.begin() + ttd);
-							ttd--;
-							cout << "deleted\n";
-							deleted++;
-						}
+					else {
+						targeted_storages[output_index].lock()->will_be[types_to_deliver[output_index]]++;
+						targeted_storages.erase(targeted_storages.begin() + output_index);
+						types_to_deliver.erase(types_to_deliver.begin() + output_index);
+						s--;
 					}
-
-					int atd_deleted = 0;
-					int atd_skipped = 0;
-					cout << "in amount to deliver\n";
-					for (int atd = 0; atd < amount_to_deliver.size(); atd++) {
-						for (int j = 0; j < amount_to_deliver[atd]; j++) {
-							if (atd_deleted == amount_to_delete) { break; };
-							if (atd_skipped < amount_to_skip) {
-								cout << "skipped\n";
-								atd_skipped++;
-								continue;
-							}
-							cout << "deleted\n";
-							amount_to_deliver[atd]--;
-							atd_deleted++;
-							j--;
-							if (amount_to_deliver[atd] == 0) {
-								amount_to_deliver.erase(amount_to_deliver.begin() + atd);
-								atd--;
-							}
-							if (atd_deleted == amount_to_delete) { break; }; // TODO ugly
-						}
-						if (atd_deleted == amount_to_delete) { break; };
-					}	
 					targeted_storages.erase(targeted_storages.begin() + s);
+					s--;
+					
 				}
 			}
-		}
+		}		
 	}
-
-	
 }
 
 vector<int> Worker::die() {
@@ -343,7 +258,7 @@ bool Worker::collectResources(vector<shared_ptr<Resource>> resources, vector<sha
 
 
 bool Worker::transportResources(vector<shared_ptr<Storage>> storages) {
-	queue<weak_ptr<Storage>> deliver_queue = {};
+	vector<weak_ptr<Storage>> deliver_vector = {};
 
 	bool first = true;
 	while (!isPacked()) {
@@ -355,7 +270,6 @@ bool Worker::transportResources(vector<shared_ptr<Storage>> storages) {
 		array<int, MAX_TYPE> to_types = { 0 };
 		for (int i = 0; i < MAX_TYPE; i++) {
 			to_types[i] += deliver_to->can_be[i] - deliver_to->will_be[i];
-			//cout << i << " " << to_types[i] << " = " << deliver_to->can_be[i] << " - " << deliver_to->will_be[i] << "\n";
 		}
 
 		array<int, MAX_TYPE> from_types = { 0 };
@@ -373,36 +287,20 @@ bool Worker::transportResources(vector<shared_ptr<Storage>> storages) {
 			first = false;
 		}
 
-		if (targeted_storages.empty() || targeted_storages.front().lock() != take_from) {
-			targeted_storages.emplace_back(take_from);
-			amount_to_take.emplace_back((int)types_to_pickup.size());
-		}
-		else {
-			amount_to_take.front() += (int)types_to_pickup.size();
-		}
-
-		if (deliver_queue.empty() || deliver_queue.front().lock() != deliver_to) {
-			deliver_queue.push(deliver_to);
-			amount_to_deliver.emplace_back((int)types_to_pickup.size());
-
-		}
-		else {
-			amount_to_deliver.front() += (int)types_to_pickup.size();
-		}
-
 		while (!types_to_pickup.empty()) {
 			types_to_deliver.emplace_back(types_to_pickup.front());
-			deliver_to->will_be[types_to_pickup.front()]++;
+
+			targeted_storages.emplace_back(take_from);
 			take_from->will_be[types_to_pickup.front()]--;
+
+			deliver_vector.emplace_back(deliver_to);
+			deliver_to->will_be[types_to_pickup.front()]++;
+			
 			types_to_pickup.pop();
 		}
-
 	}
 
-	while (!deliver_queue.empty()) {
-		targeted_storages.emplace_back(deliver_queue.front());
-		deliver_queue.pop();
-	}
+	targeted_storages.insert(targeted_storages.end(),deliver_vector.begin(), deliver_vector.end());
 
 	return !types_to_deliver.empty();
 }
@@ -475,7 +373,6 @@ void Worker::update(vector<shared_ptr<Resource>> resources,
 		}
 		else if (!collected_types.empty() && !targeted_storages.empty()) {
 			if (Vector2Distance(pos, targeted_storages.front().lock()->pos) <= 40 + 10) {
-				cout << amount_to_deliver.front() << "\n";
 				for (int i = 0; i < amount_to_deliver.front(); i++) {
 					targeted_storages.front().lock()->is[collected_types[i]]++;
 				}
@@ -510,11 +407,8 @@ void Worker::update(vector<shared_ptr<Resource>> resources,
 
 					collected_types.emplace_back(types_to_deliver.front());
 					types_to_deliver.erase(types_to_deliver.begin());
-					amount_to_take.front()--;
-					if (amount_to_take.front() <= 0) {
-						targeted_storages.erase(targeted_storages.begin());
-						amount_to_take.erase(amount_to_take.begin());
-					}
+
+					targeted_storages.erase(targeted_storages.begin());
 				}
 				else { // waiting for resorce to be delivered
 					pos = rotateAroundPoint(pos, targeted_storages.front().lock()->pos, 0.5f * GetFrameTime());
@@ -527,13 +421,9 @@ void Worker::update(vector<shared_ptr<Resource>> resources,
 		else if (!targeted_storages.empty()){
 			if (Vector2Distance(pos, targeted_storages.front().lock()->pos) <= 40 + 10) { // TODO fix distance parameter
 
-				while (amount_to_deliver.front() > 0) {
-					targeted_storages.front().lock()->is[collected_types.front()]++;
-					collected_types.erase(collected_types.begin());
-					amount_to_deliver.front()--;
-				}
+				targeted_storages.front().lock()->is[collected_types.front()]++;
+				collected_types.erase(collected_types.begin());
 
-				amount_to_deliver.erase(amount_to_deliver.begin());
 				targeted_storages.erase(targeted_storages.begin());
 
 				if (collected_types.empty()) {
