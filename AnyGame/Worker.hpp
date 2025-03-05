@@ -3,7 +3,6 @@
 
 enum class WORKER_STATES {
 	IDLE = 0,
-	COLLECTING,
 	TRANSPORTING,
 	OPERATING
 };
@@ -26,8 +25,6 @@ public:
 	vector<int> collected_types = vector<int>(); // types picked up
 
 	vector<int> types_to_deliver = vector<int>(); // types to pick up and deliver
-	vector<int> amount_to_take = vector<int>(); // how many resources does worker take from targeted storages
-	vector<int> amount_to_deliver = vector<int>(); // how many resources does worker deliver to targeted storages
 
 	vector<weak_ptr<Resource>> targeted_resources = vector<weak_ptr<Resource>>();
 	vector<weak_ptr<Storage>> targeted_storages = vector<weak_ptr<Storage>>();
@@ -40,8 +37,6 @@ public:
 	void draw() const;
 
 	bool isPacked() const;
-
-	bool collectResources(vector<shared_ptr<Resource>> resources, vector<shared_ptr<Storage>> storages);
 
 	bool transportResources(vector<shared_ptr<Storage>> storages);
 

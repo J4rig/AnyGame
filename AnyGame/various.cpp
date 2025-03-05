@@ -162,6 +162,7 @@ weak_ptr<Target> findTarget(Vector2 point, weak_ptr<Target> attacker, vector<wea
 
 	for (weak_ptr<Target> t : targets) {
 		if (t.expired() || attacker.lock()->tribe == t.lock()->tribe) {
+			cout << "here\n";
 			continue;
 		}
 		if ((new_distance = min(Vector2Distance(point, (*t.lock()->pos)), min_distance)) != min_distance) {

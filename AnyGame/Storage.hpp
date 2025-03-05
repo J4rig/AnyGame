@@ -15,6 +15,8 @@ public:
 
 	bool remove = false;
 
+	bool destroy_if_empty = false;
+
 	bool destroy = false;
 
 	array<int, MAX_TYPE> is = { 0 };
@@ -29,6 +31,7 @@ public:
 	int aboutToBeStored();
 
 	bool isFull(int type);
+	bool isEmpty();
 	bool hasSpace(int type);
 	bool hasSpace(vector<int> types);
 	int spaceLeft(int type);

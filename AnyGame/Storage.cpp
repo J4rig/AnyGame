@@ -48,6 +48,10 @@ bool Storage::isFull(int type) {
 	return isStored() >= capacity;
 }
 
+bool Storage::isEmpty() {
+		return isStored() == 0;
+}
+
 bool Storage::hasSpace(int type) {
 	if (type >= 0 && type < MAX_TYPE) {
 		return aboutToBeStored() < capacity && will_be[type] < can_be[type];

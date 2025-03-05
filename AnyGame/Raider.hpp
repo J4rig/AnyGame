@@ -6,9 +6,9 @@ public:
 	int id;
 	Vector2 pos;
 
-	weak_ptr<Target> combat;
+	weak_ptr<Target> target;
 
-	weak_ptr<Target> target = weak_ptr<Target>();
+	weak_ptr<Target> prey = weak_ptr<Target>();
 
 	Raider(int id, Vector2 pos, weak_ptr<Target> combat);
 

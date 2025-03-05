@@ -21,59 +21,6 @@ void Worker::forgetStorage(shared_ptr<Storage> storage, vector<shared_ptr<Resour
 		return;
 	}
 
-	if (state == WORKER_STATES::COLLECTING) {
-		int sum = 0;
-		int ct_size = collected_types.size();
-		for (int s = 0; s < targeted_storages.size(); s++) {
-			if (targeted_storages[s].lock() == storage) {
-				int aomunt_to_delete = amount_to_deliver[s];
-				amount_to_deliver.erase(amount_to_deliver.begin() + s);
-				bool all_deleted = false;
-				for (int ct = 0; ct < collected_types.size(); ct++) {
-					if (sum == 0) {
-						int d = min(aomunt_to_delete, (int)collected_types.size() - ct);
-						for (int t = ct; t < ct + d; t++) {
-							shared_ptr<Resource> new_resource = make_shared<Resource>(resource_id++, pos, collected_types[t]);
-							resources.emplace_back(new_resource);
-						}
-						collected_types.erase(collected_types.begin() + ct, collected_types.begin() + ct + d);
-						aomunt_to_delete -= d;
-						if (aomunt_to_delete == 0) {
-							all_deleted = true;
-						}
-						break;
-					}
-					else {
-						sum--;
-					}
-				}
-
-				for (int ttd = 0; ttd < types_to_deliver.size() - ct_size; ttd++) {
-					if (all_deleted) { break; };
-					if (sum == 0) {
-						types_to_deliver.erase(types_to_deliver.begin() + ttd, types_to_deliver.begin() + ttd + aomunt_to_delete);
-
-						for (int r = 0; r < aomunt_to_delete; r++) {
-							targeted_resources[r].lock()->occupied = false;
-						}
-						targeted_resources.erase(targeted_resources.begin(), targeted_resources.begin() + aomunt_to_delete);
-						break;
-					}
-					else {
-						sum--;
-					}
-				}
-
-				targeted_storages.erase(targeted_storages.begin() + s);
-				break;
-			}
-			else {
-				sum += amount_to_deliver[s];
-			}
-		}
-		return;
-	}
-
 	if (state == WORKER_STATES::TRANSPORTING) { 
 		for (int s = 0; s < targeted_storages.size(); s++) {
 			if (targeted_storages[s].lock() == storage) {
@@ -108,39 +55,17 @@ void Worker::forgetStorage(shared_ptr<Storage> storage, vector<shared_ptr<Resour
 }
 
 vector<int> Worker::die() {
-	if (state == WORKER_STATES::COLLECTING) {
-		for (weak_ptr<Resource> resource : targeted_resources) {
-			resource.lock()->occupied = false;
-		}
-		while(!types_to_deliver.empty()) {
-			targeted_storages.front().lock()->will_be[types_to_deliver.front()]--;
-			types_to_deliver.erase(types_to_deliver.begin());
-			amount_to_deliver.front()--;
-			if (amount_to_deliver.front() == 0) {
-				targeted_storages.erase(targeted_storages.begin());
-			}
-		}
-		return collected_types;
-	}
-	
-	else if (state == WORKER_STATES::TRANSPORTING) {
+
+	if (state == WORKER_STATES::TRANSPORTING) {
 		while (!types_to_deliver.empty()) {
 			targeted_storages.front().lock()->will_be[types_to_deliver.front()]++;
 			types_to_deliver.erase(types_to_deliver.begin());
-			amount_to_take.front()--;
-			if (amount_to_take.front() <= 0) {
-				targeted_storages.erase(targeted_storages.begin());
-				amount_to_take.erase(amount_to_take.begin());
-			}
+			targeted_storages.erase(targeted_storages.begin());
 		}
 		int i = 0;
 		while (!targeted_storages.empty()) {
-				while (amount_to_deliver.front() > 0) {
-					targeted_storages.front().lock()->will_be[collected_types[i]]--;
-					i++;
-					amount_to_deliver.front()--;
-				}
-				amount_to_deliver.erase(amount_to_deliver.begin());
+				targeted_storages.front().lock()->will_be[collected_types[i]]--;
+				i++;
 				targeted_storages.erase(targeted_storages.begin());
 		}
 		return collected_types;
@@ -170,90 +95,6 @@ void Worker::draw() const{
 
 bool Worker::isPacked() const {
 	return types_to_deliver.size() >= capacity;
-}
-
-bool Worker::collectResources(vector<shared_ptr<Resource>> resources, vector<shared_ptr<Storage>> storages) {
-
-	array<int, MAX_TYPE> can_be_stored = canBeStored(storages);
-
-	int found_resources = 0;
-
-	Vector2 lastPos = {};
-
-	shared_ptr<Resource> new_targeted_resource = nullptr;
-
-	while (found_resources < capacity) {
-		if ((new_targeted_resource = findClosestResource(pos, resources, can_be_stored)) != nullptr) {
-			new_targeted_resource->occupied = true;
-			targeted_resources.emplace_back(new_targeted_resource);
-			lastPos = new_targeted_resource->pos;
-			can_be_stored[new_targeted_resource->type]--;
-			found_resources++;
-			new_targeted_resource = nullptr;
-		}
-		else {
-			break;
-		}
-	}
-
-
-	weak_ptr<Storage> new_targeted_storage = weak_ptr<Storage>();
-
-	bool first = true;
-
-	vector<int> types = {};
-	types_to_deliver = {};
-
-	for (weak_ptr<Resource> r : targeted_resources) {
-		types.emplace_back(r.lock()->type);
-	}
-
-	vector<weak_ptr<Resource>> tmp_resources = targeted_resources;
-	targeted_resources = {};
-
-	while (!tmp_resources.empty()) {
-		new_targeted_storage = findStorageToStore(lastPos, storages, types);
-		if (!new_targeted_storage.expired()) {
-			for (int r = 0; r < tmp_resources.size(); r++) {
-				if (new_targeted_storage.lock()->hasSpace(tmp_resources[r].lock()->type)) {
-					
-					new_targeted_storage.lock()->will_be[tmp_resources[r].lock()->type]++;
-
-					targeted_resources.emplace_back(tmp_resources[r]);
-					types_to_deliver.emplace_back(types.front());
-					tmp_resources.erase(tmp_resources.begin() + r);
-					types.erase(types.begin() + r);
-					r--;
-
-					if (first) {
-						while (!targeted_storages.empty()) {
-							targeted_storages.erase(targeted_storages.begin());
-						}
-						first = false;
-					}
-
-					if (targeted_storages.empty() || new_targeted_storage.lock() != targeted_storages.front().lock()) {
-						amount_to_deliver.emplace_back(1);
-						targeted_storages.emplace_back(new_targeted_storage);
-					}
-					else {
-						amount_to_deliver.front()++;
-					}
-
-				}
-			}
-
-			new_targeted_storage = weak_ptr<Storage>();
-
-		}
-		else {
-			tmp_resources.front().lock()->occupied = false;
-			found_resources--;
-			tmp_resources.erase(tmp_resources.begin());
-		}
-	}
-
-	return found_resources > 0;
 }
 
 
@@ -324,12 +165,8 @@ void Worker::update(vector<shared_ptr<Resource>> resources,
 		}
 
 		else if (!targeted_storages.empty() && !targeted_storages.front().expired()) {
-			if (collectResources(resources, storages)) {
-				state = WORKER_STATES::COLLECTING;
 
-			}
-
-			else if (transportResources(storages)) {
+			if (transportResources(storages)) {
 				state = WORKER_STATES::TRANSPORTING;
 			}
 
@@ -356,46 +193,6 @@ void Worker::update(vector<shared_ptr<Resource>> resources,
 			if (!tmp.expired()) {
 				targeted_storages.emplace_back(tmp);
 			}
-		}
-	}
-
-	else if (state == WORKER_STATES::COLLECTING) {
-		if (!targeted_resources.empty()) {
-			if (Vector2Distance(pos, targeted_resources.front().lock()->pos) <= 0.5f) {
-				targeted_resources.front().lock()->taken = true;
-				collected_types.emplace_back(targeted_resources.front().lock()->type);
-				targeted_resources.erase(targeted_resources.begin());
-			}
-			else
-			{
-				pos = Vector2MoveTowards(pos, targeted_resources.front().lock()->pos, SPEED_MOD * speed * GetFrameTime());
-			}
-		}
-		else if (!collected_types.empty() && !targeted_storages.empty()) {
-			if (Vector2Distance(pos, targeted_storages.front().lock()->pos) <= 40 + 10) {
-				for (int i = 0; i < amount_to_deliver.front(); i++) {
-					targeted_storages.front().lock()->is[collected_types[i]]++;
-				}
-				collected_types.erase(collected_types.begin(), collected_types.begin() + amount_to_deliver.front());
-				types_to_deliver.erase(types_to_deliver.begin(), types_to_deliver.begin() + amount_to_deliver.front());
-
-				amount_to_deliver.erase(amount_to_deliver.begin());
-
-				if (targeted_storages.size() > 1) {
-					targeted_storages.erase(targeted_storages.begin());
-				}
-				else {
-					state = WORKER_STATES::IDLE;
-				}
-
-			}
-			else {
-				pos = Vector2MoveTowards(pos, targeted_storages.front().lock()->pos, SPEED_MOD * speed * GetFrameTime());
-			}
-		}
-
-		else {
-			state = WORKER_STATES::IDLE;
 		}
 	}
 
@@ -441,7 +238,10 @@ void Worker::update(vector<shared_ptr<Resource>> resources,
 	}
 
 	else if (state == WORKER_STATES::OPERATING) {
-		if (!targeted_task.lock()->isCompleted()) {
+		if (targeted_task.expired()) {
+			state = WORKER_STATES::IDLE;
+		}
+		else if (!targeted_task.lock()->isCompleted()) {
 			if (Vector2Distance(pos, targeted_task.lock()->pos) <= 0.5f) { // TODO fix distance parameter
 
 				targeted_task.lock()->work_done += GetFrameTime();

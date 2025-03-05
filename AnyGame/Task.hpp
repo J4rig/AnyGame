@@ -15,6 +15,8 @@ public:
 	int max_workers;
 	int current_workers = 0;
 
+	bool destroy = false;
+
 	bool finished = false;
 
 	Task(int id, Vector2 pos, int priority, float work_to_do, int max_workers);
