@@ -3,16 +3,9 @@
 
 class Resource {
 public:
-	int id;
-	Vector2 pos;
-	float r = 5.0f;
-
 	int type;
+	array<bool, MAX_TRIBE> occupied;
+	bool ready = false;
 
-	bool occupied = false;
-	bool taken = false;
-
-	Resource(int id, Vector2 pos, int type);
-
-	void draw() const;
+	Resource(int type);
 };

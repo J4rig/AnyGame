@@ -24,6 +24,8 @@ constexpr auto STOCKPILE_CAPACITY = 10;
 
 using namespace std;
 
+inline int node_id = 0;
+
 inline int raider_id = 0;
 inline int construction_id = 0;
 inline int stockpile_id = 0;
@@ -39,39 +41,40 @@ inline int target_id = 0;
 inline int settlement_id = 0;
 inline int tribe_id = 0;
 
-inline int selected_tribe = -1;
-inline int selected_settlement = -1;
+inline int selected_tribe = 0;
+inline int selected_settlement = 0;
 
 
 inline const array<Color, MAX_TYPE> type_color = { MAGENTA, DARKGREEN, DARKBLUE, YELLOW };
 inline const array<Color, MAX_TRIBE> tribe_color = { RED,LIGHTGRAY,ORANGE,BLUE };
 
+class Drawing;
 
 class Tribe;
 
 class Settlement;
 
 
-
 class Storage;
 
 class Task;
 
-class Target;
-
-
-
-class Raider;
 
 class Construction;
 
-class Stockpile;
+class Node;
 
-class Resource;
+class Stockpile;
 
 class Generator;
 
 class Forge;
+
+
+class Target;
+
+
+class Raider;
 
 class Worker;
 
@@ -79,15 +82,13 @@ class Worker;
 
 Vector2 rotateAroundPoint(Vector2 point, Vector2 center, float angleInRads);
 
-shared_ptr<Resource> findClosestResource(Vector2 point, vector<shared_ptr<Resource>> resources, array<int,MAX_TYPE> valid_types);
-
 weak_ptr<Storage> findStorageToIdle(Vector2 point, vector<shared_ptr<Storage>> storages);
 
 weak_ptr<Storage> findStorageToDeliver(Vector2 point, vector<shared_ptr<Storage>> storages);
 
 weak_ptr<Storage> findStorageToStore(Vector2 point, vector<shared_ptr<Storage>> storages, vector<int> types);
 
-weak_ptr<Storage> findStorageToTake(Vector2 point, vector<shared_ptr<Storage>> storages, array<int, MAX_TYPE>& return_types, array<int, MAX_TYPE> wanted_types, int max_priority);
+weak_ptr<Storage> findStorageToTake(Vector2 point, int tribe, vector<shared_ptr<Storage>> storages, array<int, MAX_TYPE>& return_types, array<int, MAX_TYPE> wanted_types, int max_priority);
 
 weak_ptr<Task> findTask(Vector2 point, vector<shared_ptr<Task>> tasks);
 

@@ -131,13 +131,15 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="backup.cpp" />
+    <ClCompile Include="Drawing.cpp" />
+    <ClCompile Include="Node.cpp" />
     <ClCompile Include="Target.cpp" />
     <ClCompile Include="Construction.cpp" />
     <ClCompile Include="Forge.cpp" />
     <ClCompile Include="Generator.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Raider.cpp" />
-    <ClCompile Include="Resource.cpp" />
     <ClCompile Include="Settlement.cpp" />
     <ClCompile Include="Stockpile.cpp" />
     <ClCompile Include="Stockpile.hpp" />
@@ -149,12 +151,13 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="any_game.hpp" />
+    <ClInclude Include="Drawing.hpp" />
+    <ClInclude Include="Node.hpp" />
     <ClInclude Include="Target.hpp" />
     <ClInclude Include="Construction.hpp" />
     <ClInclude Include="Forge.hpp" />
     <ClInclude Include="Generator.hpp" />
     <ClInclude Include="Raider.hpp" />
-    <ClInclude Include="Resource.hpp" />
     <ClInclude Include="Settlement.hpp" />
     <ClInclude Include="Storage.hpp" />
     <ClInclude Include="Task.hpp" />

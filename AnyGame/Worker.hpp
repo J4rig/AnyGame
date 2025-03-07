@@ -1,5 +1,6 @@
 #pragma once
 #include "any_game.hpp"
+#include "Drawing.hpp"
 
 enum class WORKER_STATES {
 	IDLE = 0,
@@ -7,14 +8,14 @@ enum class WORKER_STATES {
 	OPERATING
 };
 
-class Worker {
+class Worker : public Drawing{
 public:
 	int id;
 	int tribe;
 
 	Vector2 pos;
 	float r = 10.0f;
-	float speed;
+	float speed = 1.0f;
 
 	weak_ptr<Target> target;
 
@@ -26,13 +27,12 @@ public:
 
 	vector<int> types_to_deliver = vector<int>(); // types to pick up and deliver
 
-	vector<weak_ptr<Resource>> targeted_resources = vector<weak_ptr<Resource>>();
 	vector<weak_ptr<Storage>> targeted_storages = vector<weak_ptr<Storage>>();
 	weak_ptr<Task> targeted_task = weak_ptr<Task>();
 
-	Worker(int id, int tribe, Vector2 pos, weak_ptr<Target> target, float speed);
+	Worker(int z, int id, int tribe, Vector2 pos, weak_ptr<Target> target);
 
-	void update(vector<shared_ptr<Resource>> resources, vector<shared_ptr<Storage>> storages, vector<shared_ptr<Task>> tasks);
+	void update(vector<shared_ptr<Storage>> storages, vector<shared_ptr<Task>> tasks);
 
 	void draw() const;
 
@@ -44,5 +44,5 @@ public:
 
 	vector<int> die();
 
-	void forgetStorage(shared_ptr<Storage> storage, vector<shared_ptr<Resource>>& resources);
+	//void forgetStorage(shared_ptr<Storage> storage, vector<shared_ptr<Resource>>& resources);
 };

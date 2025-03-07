@@ -2,24 +2,10 @@
 
 #include "Storage.hpp"
 #include "Task.hpp"
-#include "Resource.hpp"
 #include "Target.hpp"
 
 #include <iostream>
 #include <algorithm>
-
-shared_ptr<Resource> findClosestResource(Vector2 point, vector<shared_ptr<Resource>> resources, array<int, MAX_TYPE> valid_types) { //-1 if type is not important or number of type
-	shared_ptr<Resource> result = nullptr;
-	float min_dst = numeric_limits<float>::max();
-	float new_distance;
-	for (shared_ptr<Resource> r : resources) {
-		if (!r->occupied && valid_types[r->type] > 0 && (new_distance = min(Vector2Distance(point, r->pos), min_dst)) != min_dst) {
-			result = r;
-			min_dst = new_distance;
-		}
-	}
-	return result;
-}
 
 weak_ptr<Storage> findStorageToIdle(Vector2 point, vector<shared_ptr<Storage>> storages) {
 	float min_distance = numeric_limits<float>::max();
@@ -113,7 +99,7 @@ weak_ptr<Storage> findStorageToDeliver(Vector2 point, vector<shared_ptr<Storage>
 	return result;
 }
 
-weak_ptr<Storage> findStorageToTake(Vector2 point, vector<shared_ptr<Storage>> storages, array<int, MAX_TYPE>& return_types, array<int, MAX_TYPE> wanted_types, int max_priority) {
+weak_ptr<Storage> findStorageToTake(Vector2 point, int tribe, vector<shared_ptr<Storage>> storages, array<int, MAX_TYPE>& return_types, array<int, MAX_TYPE> wanted_types, int max_priority) {
 	float min_distance = numeric_limits<float>::max();
 	float new_distance;
 
@@ -124,7 +110,7 @@ weak_ptr<Storage> findStorageToTake(Vector2 point, vector<shared_ptr<Storage>> s
 			continue;
 		}
 
-		std::array<int, MAX_TYPE> tmp = hasTypes(s->will_be, wanted_types);
+		std::array<int, MAX_TYPE> tmp = hasTypes(s->is, wanted_types);
 		if (resourceCount(tmp) > 0 && (new_distance = min(Vector2Distance(point, s->pos), min_distance)) != min_distance) {
 			return_types = tmp;
 			min_distance = new_distance;

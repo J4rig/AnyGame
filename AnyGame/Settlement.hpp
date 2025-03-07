@@ -15,8 +15,6 @@ public:
 
 	vector<shared_ptr<Stockpile>> stockpiles;
 
-	vector<shared_ptr<Resource>> resources;
-
 	vector<shared_ptr<Worker>> workers;
 
 	vector<shared_ptr<Construction>> constructions;
