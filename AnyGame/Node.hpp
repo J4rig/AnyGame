@@ -8,11 +8,11 @@ public:
 	int id;
 	
 	Vector2 pos;
-	float r = 5.0f;
+	shared_ptr<float> r;
 
 	weak_ptr<Storage> storage;
 
-	Node(int z, int id, Vector2 pos, weak_ptr<Storage> storage);
+	Node(int z, int id, Vector2 pos, shared_ptr<float> r, weak_ptr<Storage> storage);
 
 	void update();
 

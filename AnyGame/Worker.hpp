@@ -11,6 +11,7 @@ enum class WORKER_STATES {
 class Worker : public Drawing{
 public:
 	int id;
+
 	int tribe;
 
 	Vector2 pos;

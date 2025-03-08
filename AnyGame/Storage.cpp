@@ -4,8 +4,8 @@
 
 
 
-Storage::Storage(int id, Vector2 pos, int priority, int capacity, array<int, MAX_TYPE> limits, bool can_take) :
-	id(id), pos(pos), priority(priority), capacity(capacity), can_be(limits), can_take(can_take) {
+Storage::Storage(int id, int tribe, Vector2 pos, weak_ptr<float> r, int priority, int capacity, array<int, MAX_TYPE> limits, bool can_take) :
+	id(id), tribe(tribe), pos(pos), r(r), priority(priority), capacity(capacity), can_be(limits), can_take(can_take) {
 };
 
 //od kazdeho workera ktory ho ma v zozname

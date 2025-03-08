@@ -8,6 +8,8 @@
 #include <memory>
 #include <functional>
 
+using namespace std;
+
 constexpr auto MAX_TYPE = 4;
 
 constexpr auto MAX_TRIBE = 4;
@@ -22,7 +24,11 @@ constexpr auto MAX_PRIORITY = 4;
 
 constexpr auto STOCKPILE_CAPACITY = 10;
 
-using namespace std;
+
+constexpr auto NODE_R = 5.0f;
+constexpr auto STOCKPILE_R = 40.0f;
+constexpr auto FORGE_R = 30.0f;
+
 
 inline int node_id = 0;
 
@@ -84,11 +90,11 @@ Vector2 rotateAroundPoint(Vector2 point, Vector2 center, float angleInRads);
 
 weak_ptr<Storage> findStorageToIdle(Vector2 point, vector<shared_ptr<Storage>> storages);
 
-weak_ptr<Storage> findStorageToDeliver(Vector2 point, vector<shared_ptr<Storage>> storages);
+weak_ptr<Storage> findStorageToDeliverTo(Vector2 point, vector<shared_ptr<Storage>> storages);
 
 weak_ptr<Storage> findStorageToStore(Vector2 point, vector<shared_ptr<Storage>> storages, vector<int> types);
 
-weak_ptr<Storage> findStorageToTake(Vector2 point, int tribe, vector<shared_ptr<Storage>> storages, array<int, MAX_TYPE>& return_types, array<int, MAX_TYPE> wanted_types, int max_priority);
+weak_ptr<Storage> findStorageToTakeFrom(Vector2 point, int tribe, vector<shared_ptr<Storage>> storages, array<int, MAX_TYPE>& return_types, array<int, MAX_TYPE> wanted_types, int max_priority);
 
 weak_ptr<Task> findTask(Vector2 point, vector<shared_ptr<Task>> tasks);
 

@@ -28,9 +28,10 @@
 
 tuple<shared_ptr<Storage>,shared_ptr<Node>>
 createNode(vector<int> types, Vector2 pos) {
+	shared_ptr<float> r = make_shared<float>(NODE_R);
 	array<int, MAX_TYPE> limits = { 0 };
 
-	shared_ptr<Storage> new_storage = make_shared<Storage>(storage_id++, pos, 0, (int)types.size(), limits, true);
+	shared_ptr<Storage> new_storage = make_shared<Storage>(storage_id++, -1, pos, r, 0, (int)types.size(), limits, true);
 
 	for (int i : types) {
 		new_storage->is[i]++;
@@ -38,17 +39,18 @@ createNode(vector<int> types, Vector2 pos) {
 		new_storage->can_be[i]++;
 	}
 
-	shared_ptr<Node> new_node = make_shared<Node>(1,node_id++,pos,new_storage);
+	shared_ptr<Node> new_node = make_shared<Node>(1,node_id++,pos, r, new_storage);
 	
 	return make_tuple(new_storage, new_node);
 }
 
 tuple<shared_ptr<Storage>, shared_ptr<Construction>, shared_ptr<Target>, shared_ptr<Stockpile>> 
 createStockpile(Vector2 pos) {
+	shared_ptr<float> r = make_shared<float>(STOCKPILE_R);
 	//construction storage
 	std::array<int, MAX_TYPE> limits = { 0 };
 	limits[0] = 2;
-	shared_ptr<Storage> new_storage = make_shared<Storage>(storage_id++, pos, 3, 2, limits, false);
+	shared_ptr<Storage> new_storage = make_shared<Storage>(storage_id++, selected_tribe, pos, r, 3, 2, limits, false);
 
 	//construction
 	shared_ptr<Construction> new_construction = make_shared<Construction>(construction_id++, pos, new_storage, weak_ptr<Task>());
@@ -57,8 +59,7 @@ createStockpile(Vector2 pos) {
 	shared_ptr<Target> new_target = make_shared<Target>(target_id++, selected_tribe, &pos, 10.0f, 30, 0, 0);
 
 	//stockpile
-	shared_ptr<Stockpile> new_stockpile = make_shared<Stockpile>(2,stockpile_id++, selected_tribe, pos, 40.0f, new_construction, weak_ptr<Storage>(), new_target);
-
+	shared_ptr<Stockpile> new_stockpile = make_shared<Stockpile>(2,stockpile_id++, selected_tribe, pos, r, new_construction, weak_ptr<Storage>(), new_target);
 	return make_tuple(new_storage, new_construction, new_target, new_stockpile);
 
 }
@@ -70,11 +71,12 @@ createStockpile(Vector2 pos) {
 
 tuple<shared_ptr<Storage>, shared_ptr<Construction>, shared_ptr<Target>, shared_ptr<Forge>> 
 createForge(array<int, MAX_TYPE> recipe, array<int, MAX_TYPE> produce, Vector2 pos) {
+	shared_ptr<float> r = make_shared<float>(FORGE_R);
 	//construction storage
 	std::array<int, MAX_TYPE> limits = { 0 };
 	limits[1] = 1;
 	limits[2] = 1;
-	shared_ptr<Storage> new_storage = make_shared<Storage>(storage_id++, pos, 3, 2, limits, false);
+	shared_ptr<Storage> new_storage = make_shared<Storage>(storage_id++, selected_tribe, pos, r, 3, 2, limits, false);
 
 	//construction
 	shared_ptr<Construction> new_construction = make_shared<Construction>(construction_id++, pos, new_storage, weak_ptr<Task>());
@@ -83,8 +85,7 @@ createForge(array<int, MAX_TYPE> recipe, array<int, MAX_TYPE> produce, Vector2 p
 	shared_ptr<Target> new_target = make_shared<Target>(target_id++, selected_tribe, &pos, 10, 30, 0, 0);
 
 	//forge
-	shared_ptr<Forge> new_forge = make_shared<Forge>(3,forge_id++, pos, 40.0f, recipe, produce, new_construction, new_target);
-
+	shared_ptr<Forge> new_forge = make_shared<Forge>(3,forge_id++, selected_tribe, pos, r, recipe, produce, new_construction, new_target);
 	return make_tuple(new_storage, new_construction, new_target, new_forge);
 }
 
@@ -95,32 +96,26 @@ int main() {
 	srand((unsigned int)time(nullptr)); // time based seed for RNG
 
 
-	vector<weak_ptr<Storage>> storages;
+	vector<shared_ptr<Storage>> storages;
+	vector<shared_ptr<Node>> nodes;
+	vector<shared_ptr<Tribe>> tribes;
+	vector<weak_ptr<Drawing>> drawings;
 
-	vector<weak_ptr<Task>> tasks;
+
+
+	//vector<weak_ptr<Task>> tasks;
 
 	vector<weak_ptr<Target>> targets;
 
-
-	vector<weak_ptr<Construction>> constructions;
-
-
+	//vector<weak_ptr<Construction>> constructions;
 
 	vector<weak_ptr<Generator>> generators;
 
-
-	
-	vector<shared_ptr<Node>> nodes;
-
 	vector<weak_ptr<Raider>> raiders;
 
+	//vector<weak_ptr<Settlement>> settlements;
 
-	vector<weak_ptr<Settlement>> settlements;
-
-	vector<shared_ptr<Tribe>> tribes;
-
-
-	vector<weak_ptr<Drawing>> drawings;
+	
 
 	vector<int> create_resource_types = {};
 	int last_recipe_index = -1;
@@ -189,8 +184,8 @@ int main() {
 
 		if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT) && !create_resource_types.empty()) {
 			tuple<shared_ptr<Storage>, shared_ptr<Node>> result = createNode(create_resource_types, GetMousePosition());
-			insertStorageShared(tribes[selected_tribe]->settlements[selected_settlement]->storages, get<0>(result));
-			insertStorageWeak(storages, get<0>(result));
+			insertStorageShared(storages, get<0>(result));
+			//insertStorageWeak(storages, get<0>(result));
 			nodes.emplace_back(get<1>(result));
 
 
@@ -220,20 +215,14 @@ int main() {
 			tuple<shared_ptr<Storage>, shared_ptr<Construction>, shared_ptr<Target>, shared_ptr<Stockpile>>
 				result = createStockpile(GetMousePosition());
 
-			insertStorageShared(tribes[selected_tribe]->settlements[selected_settlement]->storages, get<0>(result));
-			insertStorageWeak(storages, get<0>(result));
+			insertStorageShared(storages, get<0>(result));
+			//insertStorageWeak(storages, get<0>(result));
 
 			tribes[selected_tribe]->settlements[selected_settlement]->constructions.emplace_back(get<1>(result));
 			tribes[selected_tribe]->targets.emplace_back(get<2>(result));
 			tribes[selected_tribe]->settlements[selected_settlement]->stockpiles.emplace_back(get<3>(result));
 			drawings.emplace_back(get<3>(result));
 		}
-
-		/*if (IsKeyReleased(KEY_C) && selected_settlement != -1) {
-			Vector2 mouse_pos = GetMousePosition();
-
-			
-		}*/
 
 		if (IsKeyReleased(KEY_F) && selected_settlement != -1 && last_recipe_index < create_resource_types.size()) {
 			array<int, MAX_TYPE> recipe = {};
@@ -250,8 +239,8 @@ int main() {
 			create_resource_types.clear();
 
 			tuple<shared_ptr<Storage>, shared_ptr<Construction>, shared_ptr<Target>, shared_ptr<Forge>> result = createForge(recipe, produce, GetMousePosition());
-			insertStorageShared(tribes[selected_tribe]->settlements[selected_settlement]->storages, get<0>(result));
-			insertStorageWeak(storages, get<0>(result));
+			insertStorageShared(storages, get<0>(result));
+			//insertStorageWeak(storages, get<0>(result));
 
 			tribes[selected_tribe]->settlements[selected_settlement]->constructions.emplace_back(get<1>(result));
 			tribes[selected_tribe]->targets.emplace_back(get<2>(result));
@@ -328,7 +317,7 @@ int main() {
 						worker--;
 						continue;
 					}*/
-					settlement->workers[worker]->update(settlement->storages, settlement->tasks);
+					settlement->workers[worker]->update(storages, settlement->tasks);
 				}
 
 				for (int raider = 0; raider < tribe->raiders.size(); raider++) {
@@ -364,7 +353,7 @@ int main() {
 						settlement->constructions[c]->is_all_delivered = true;
 						shared_ptr<Task> new_task = make_shared<Task>(task_id++, settlement->constructions[c]->pos, 1, 5.0f, 2);
 						insertTaskShared(settlement->tasks, new_task);
-						insertTaskWeak(tasks, new_task);
+						//insertTaskWeak(tasks, new_task);
 						settlement->constructions[c]->task = new_task;
 					}
 				}
@@ -413,10 +402,11 @@ int main() {
 						array<int, MAX_TYPE> limits = { 0 };
 						limits.fill(STOCKPILE_CAPACITY);
 
-						shared_ptr<Storage> new_storage = make_shared<Storage>(storage_id++, settlement->stockpiles[stockpile]->pos, 1, STOCKPILE_CAPACITY, limits, true);
+						shared_ptr<Storage> new_storage = make_shared<Storage>(storage_id++, settlement->stockpiles[stockpile]->tribe, settlement->stockpiles[stockpile]->pos, settlement->stockpiles[stockpile]->r, 1, STOCKPILE_CAPACITY, limits, true);
 						/*insertStorageWeak(storages, new_storage);*/
-						insertStorageShared(settlement->storages, new_storage);
+						insertStorageShared(storages, new_storage);
 						settlement->stockpiles[stockpile]->storage = new_storage;
+
 					}
 				}
 
@@ -444,10 +434,8 @@ int main() {
 
 					if (settlement->forges[forge]->construction.expired() && settlement->forges[forge]->storage.expired()) {
 						array<int, MAX_TYPE> limits = { 0 };
-						limits[1] = 1;
-						limits[2] = 1;
-						shared_ptr<Storage> new_storage = make_shared<Storage>(stockpile_id++, settlement->forges[forge]->pos, 2, 2, limits, true);
-						insertStorageShared(tribes[selected_tribe]->settlements[selected_settlement]->storages, new_storage);
+						shared_ptr<Storage> new_storage = make_shared<Storage>(stockpile_id++, settlement->forges[forge]->tribe, settlement->forges[forge]->pos, settlement->forges[forge]->r, 2, 2, settlement->forges[forge]->recipe, true);
+						insertStorageShared(storages, new_storage);
 						/*insertStorageWeak(storages, new_storage);*/
 						settlement->forges[forge]->storage = new_storage;
 					}
@@ -466,7 +454,7 @@ int main() {
 					if (settlement->forges[forge]->task.expired() && !settlement->forges[forge]->storage.expired() && settlement->forges[forge]->storage.lock()->isFull(-1)) {
 						shared_ptr<Task> new_task = make_shared<Task>(task_id++, settlement->forges[forge]->pos, 2, 3.0f, 1);
 						insertTaskShared(settlement->tasks, new_task);
-						insertTaskWeak(tasks, new_task);
+						//insertTaskWeak(tasks, new_task);
 						settlement->forges[forge]->task = new_task;
 					}
 				}
@@ -510,11 +498,11 @@ int main() {
 			node->update();
 		}
 		
-		std::erase_if(tasks, [](weak_ptr<Task> t) {return t.expired(); });
+		//std::erase_if(tasks, [](weak_ptr<Task> t) {return t.expired(); });
 
 		std::erase_if(storages, [](weak_ptr<Storage> s) {return s.expired(); });
 
-		std::erase_if(constructions, [](weak_ptr<Construction> c) {return c.expired(); });
+		//std::erase_if(constructions, [](weak_ptr<Construction> c) {return c.expired(); });
 
 		std::erase_if(targets, [](weak_ptr<Target> t) {return t.expired(); });
 

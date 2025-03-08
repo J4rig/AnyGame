@@ -5,9 +5,11 @@ class Storage {
 public:
 	int id;
 
+	int tribe;
+
 	Vector2 pos;
 
-	float* r = nullptr;
+	weak_ptr<float> r;
 
 	int priority;
 
@@ -20,7 +22,7 @@ public:
 	array<int, MAX_TYPE> will_be = {};
 	array<int, MAX_TYPE> can_be = {};
 
-	Storage(int id, Vector2 pos, int priority, int capacity, array<int, MAX_TYPE> limits, bool can_take);
+	Storage(int id, int tribe, Vector2 pos, weak_ptr<float> r, int priority, int capacity, array<int, MAX_TYPE> limits, bool can_take);
 
 	int isStored();
 	int aboutToBeStored();

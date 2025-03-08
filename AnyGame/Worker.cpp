@@ -103,19 +103,19 @@ bool Worker::transportResources(vector<shared_ptr<Storage>> storages) {
 
 	bool first = true;
 	while (!isPacked()) {
-		shared_ptr<Storage> deliver_to = findStorageToDeliver(pos, storages).lock();
+		shared_ptr<Storage> deliver_to = findStorageToDeliverTo(pos, storages).lock(); //finds storage to deliver to
 		if (deliver_to == nullptr) {
 			break;
 		}
 
-		array<int, MAX_TYPE> to_types = { 0 };
+		array<int, MAX_TYPE> to_types = { 0 }; // creates an array of types that can be delivered to found storage
 		for (int i = 0; i < MAX_TYPE; i++) {
 			to_types[i] += deliver_to->can_be[i] - deliver_to->will_be[i];
 		}
 
 		array<int, MAX_TYPE> from_types = { 0 };
 
-		shared_ptr<Storage> take_from = findStorageToTake(deliver_to->pos, tribe, storages, from_types, to_types, deliver_to->priority).lock();
+		shared_ptr<Storage> take_from = findStorageToTakeFrom(deliver_to->pos, tribe, storages, from_types, to_types, deliver_to->priority).lock();
 
 		if (take_from == nullptr || take_from == deliver_to) {
 			break;
@@ -175,7 +175,8 @@ void Worker::update( vector<shared_ptr<Storage>> storages, vector<shared_ptr<Tas
 				pos = Vector2Add(targeted_storages.front().lock()->pos, { 50.0f,0.0f });
 			}
 
-			else if (Vector2Distance(pos, targeted_storages.front().lock()->pos) <= 40 + 10) {
+			else if (Vector2Distance(pos, targeted_storages.front().lock()->pos) <= *(targeted_storages.front().lock()->r.lock()) + r) {
+
 				pos = rotateAroundPoint(pos, targeted_storages.front().lock()->pos, 0.5f * GetFrameTime());
 			}
 
@@ -198,7 +199,7 @@ void Worker::update( vector<shared_ptr<Storage>> storages, vector<shared_ptr<Tas
 
 	else if (state == WORKER_STATES::TRANSPORTING) {
 		if (!types_to_deliver.empty()) {
-			if (Vector2Distance(pos, targeted_storages.front().lock()->pos) <= 40 + 10) {
+			if (Vector2Distance(pos, targeted_storages.front().lock()->pos) <= *(targeted_storages.front().lock()->r.lock()) + r) {
 				if (targeted_storages.front().lock()->is[types_to_deliver.front()] > 0) {
 					targeted_storages.front().lock()->is[types_to_deliver.front()]--;
 
@@ -208,7 +209,7 @@ void Worker::update( vector<shared_ptr<Storage>> storages, vector<shared_ptr<Tas
 					targeted_storages.erase(targeted_storages.begin());
 				}
 				else { // waiting for resorce to be delivered
-					pos = rotateAroundPoint(pos, targeted_storages.front().lock()->pos, 0.5f * GetFrameTime());
+					//pos = rotateAroundPoint(pos, targeted_storages.front().lock()->pos, 0.5f * GetFrameTime());
 				}
 			}
 			else {
@@ -216,7 +217,7 @@ void Worker::update( vector<shared_ptr<Storage>> storages, vector<shared_ptr<Tas
 			}
 		}
 		else if (!targeted_storages.empty()){
-			if (Vector2Distance(pos, targeted_storages.front().lock()->pos) <= 40 + 10) { // TODO fix distance parameter
+			if (Vector2Distance(pos, targeted_storages.front().lock()->pos) <= *targeted_storages.front().lock()->r.lock() + r) { // TODO fix distance parameter
 
 				targeted_storages.front().lock()->is[collected_types.front()]++;
 				collected_types.erase(collected_types.begin());
@@ -233,7 +234,7 @@ void Worker::update( vector<shared_ptr<Storage>> storages, vector<shared_ptr<Tas
 			}
 		}
 		else {
-			state = WORKER_STATES::IDLE;
+			//state = WORKER_STATES::IDLE;
 		}
 	}
 
