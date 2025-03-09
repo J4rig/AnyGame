@@ -9,72 +9,72 @@ Worker::Worker(int z, int id, int tribe, Vector2 pos, weak_ptr<Target> target) :
 	Drawing(z), id(id), tribe(tribe), pos(pos), target(target) {
 };
 
-//void Worker::forgetStorage(shared_ptr<Storage> storage, vector<shared_ptr<Resource>>& resources) {
-//	if (state == WORKER_STATES::IDLE) {
-//		targeted_storages = {};
-//		return;
-//	}
-//
-//	if (state == WORKER_STATES::OPERATING) {
-//		targeted_storages = {};
-//		return;
-//	}
-//
-//	if (state == WORKER_STATES::TRANSPORTING) { 
-//		for (int s = 0; s < targeted_storages.size(); s++) {
-//			if (targeted_storages[s].lock() == storage) {
-//				if ( 2* (collected_types.size() + s) < collected_types.size() + targeted_storages.size()) { //delete an output storage
-//					targeted_storages[s + types_to_deliver.size() + collected_types.size()].lock()->will_be[types_to_deliver[s]]--;
-//					targeted_storages.erase(targeted_storages.begin() + s + types_to_deliver.size() + collected_types.size());
-//					targeted_storages.erase(targeted_storages.begin() + s); 
-//					types_to_deliver.erase(types_to_deliver.begin() + s);
-//					s--;
-//				}
-//				else { //delete an imput storage
-//					int output_index = s - types_to_deliver.size() - collected_types.size();
-//
-//					if (output_index < 0) {
-//						//shared_ptr<Resource> new_resource = make_shared<Resource>(resource_id++, pos, collected_types[collected_types.size() + output_index]);
-//						//resources.emplace_back(new_resource);
-//						//collected_types.erase(collected_types.end() + output_index);
-//					}
-//					else {
-//						targeted_storages[output_index].lock()->will_be[types_to_deliver[output_index]]++;
-//						targeted_storages.erase(targeted_storages.begin() + output_index);
-//						types_to_deliver.erase(types_to_deliver.begin() + output_index);
-//						s--;
-//					}
-//					targeted_storages.erase(targeted_storages.begin() + s);
-//					s--;
-//					
-//				}
-//			}
-//		}		
-//	}
-//}
+void Worker::forgetStorage(shared_ptr<Storage> storage) {
+	if (state == WORKER_STATES::IDLE) {
+		targeted_storages = {};
+		return;
+	}
 
-//vector<int> Worker::die() {
-//
-//	if (state == WORKER_STATES::TRANSPORTING) {
-//		while (!types_to_deliver.empty()) {
-//			targeted_storages.front().lock()->will_be[types_to_deliver.front()]++;
-//			types_to_deliver.erase(types_to_deliver.begin());
-//			targeted_storages.erase(targeted_storages.begin());
-//		}
-//		int i = 0;
-//		while (!targeted_storages.empty()) {
-//				targeted_storages.front().lock()->will_be[collected_types[i]]--;
-//				i++;
-//				targeted_storages.erase(targeted_storages.begin());
-//		}
-//		return collected_types;
-//	}
-//
-//	else if (state == WORKER_STATES::OPERATING) {
-//		targeted_task.lock()->current_workers--;
-//
-//	}
-//}
+	if (state == WORKER_STATES::OPERATING) {
+		targeted_storages = {};
+		return;
+	}
+
+	if (state == WORKER_STATES::TRANSPORTING) { 
+		for (int s = 0; s < targeted_storages.size(); s++) {
+			if (targeted_storages[s].lock() == storage) {
+				if ( 2* (collected_types.size() + s) < collected_types.size() + targeted_storages.size()) { //delete an output storage
+					targeted_storages[s + types_to_deliver.size() + collected_types.size()].lock()->will_be[types_to_deliver[s]]--;
+					targeted_storages.erase(targeted_storages.begin() + s + types_to_deliver.size() + collected_types.size());
+					targeted_storages.erase(targeted_storages.begin() + s); 
+					types_to_deliver.erase(types_to_deliver.begin() + s);
+					s--;
+				}
+				else { //delete an imput storage
+					int output_index = s - types_to_deliver.size() - collected_types.size();
+
+					if (output_index < 0) {
+						//shared_ptr<Resource> new_resource = make_shared<Resource>(resource_id++, pos, collected_types[collected_types.size() + output_index]);
+						//resources.emplace_back(new_resource);
+						collected_types.erase(collected_types.end() + output_index);
+					}
+					else {
+						targeted_storages[output_index].lock()->will_be[types_to_deliver[output_index]]++;
+						targeted_storages.erase(targeted_storages.begin() + output_index);
+						types_to_deliver.erase(types_to_deliver.begin() + output_index);
+						s--;
+					}
+					targeted_storages.erase(targeted_storages.begin() + s);
+					s--;
+					
+				}
+			}
+		}		
+	}
+}
+
+vector<int> Worker::die() {
+
+	if (state == WORKER_STATES::TRANSPORTING) {
+		while (!types_to_deliver.empty()) {
+			targeted_storages.front().lock()->will_be[types_to_deliver.front()]++;
+			types_to_deliver.erase(types_to_deliver.begin());
+			targeted_storages.erase(targeted_storages.begin());
+		}
+		int i = 0;
+		while (!targeted_storages.empty()) {
+				targeted_storages.front().lock()->will_be[collected_types[i]]--;
+				i++;
+				targeted_storages.erase(targeted_storages.begin());
+		}
+		return collected_types;
+	}
+
+	else if (state == WORKER_STATES::OPERATING) {
+		targeted_task.lock()->current_workers--;
+
+	}
+}
 
 
 void Worker::draw() const{

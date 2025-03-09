@@ -45,5 +45,5 @@ public:
 
 	vector<int> die();
 
-	//void forgetStorage(shared_ptr<Storage> storage, vector<shared_ptr<Resource>>& resources);
+	void forgetStorage(shared_ptr<Storage> storage);
 };

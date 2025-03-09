@@ -148,7 +148,6 @@ weak_ptr<Target> findTarget(Vector2 point, weak_ptr<Target> attacker, vector<wea
 
 	for (weak_ptr<Target> t : targets) {
 		if (t.expired() || attacker.lock()->tribe == t.lock()->tribe) {
-			cout << "here\n";
 			continue;
 		}
 		if ((new_distance = min(Vector2Distance(point, (*t.lock()->pos)), min_distance)) != min_distance) {
@@ -193,7 +192,7 @@ bool hasType(array<int, MAX_TYPE> stored_types, int type) {
 
 
 
-array<int, MAX_TYPE> arangeTypes(vector<int> types) {
+array<int, MAX_TYPE> arrangeTypes(vector<int> types) {
 	array<int, MAX_TYPE> result = { 0 };
 	for (int i : types) {
 		result[i]++;
@@ -237,6 +236,15 @@ array<int, MAX_TYPE> canBeStored(vector<shared_ptr<Storage>> storages) {
 		}
 	}
 	return result;
+}
+
+bool addToStorage(weak_ptr<Storage>& storage, array<int, MAX_TYPE> types) {
+	if (storage.expired()) return false;
+	for (int i = 0; i < MAX_TYPE; i++) {
+		if (storage.lock()->spaceLeft(i) < types[i]) return false;
+		storage.lock()->is[i] += types[i];
+		storage.lock()->will_be[i] += types[i];
+	}
 }
 
 void insertStorageShared(vector<shared_ptr<Storage>>& storages, shared_ptr<Storage> storage) {

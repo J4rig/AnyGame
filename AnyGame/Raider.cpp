@@ -2,8 +2,8 @@
 #include "Raider.hpp"
 #include "Target.hpp"
 
-Raider::Raider(int id, Vector2 pos, weak_ptr<Target> target) :
-	id(id), pos(pos), target(target) {
+Raider::Raider(int z,int id, Vector2 pos, weak_ptr<Target> target) :
+	Drawing(z), id(id), pos(pos), target(target) {
 };
 
 void Raider::draw() const {

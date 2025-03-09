@@ -104,13 +104,15 @@ array<int, MAX_TYPE> hasTypes(array<int, MAX_TYPE> stored_types, array<int, MAX_
 
 bool hasType(array<int, MAX_TYPE> stored_types, int type);
 
-array<int, MAX_TYPE> arangeTypes(vector<int> types);
+array<int, MAX_TYPE> arrangeTypes(vector<int> types);
 
 int resourceCount(array<int, MAX_TYPE> stored_types);
 
 queue<int> cutToCapacity(array<int, MAX_TYPE> stored_types, int capacity);
 
 array<int, MAX_TYPE> canBeStored(vector<shared_ptr<Storage>> storages);
+
+bool addToStorage(weak_ptr<Storage>& storage, array<int, MAX_TYPE> types);
 
 void insertStorageShared(vector<shared_ptr<Storage>>& storages, shared_ptr<Storage> storage);
 

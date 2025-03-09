@@ -13,7 +13,8 @@ public:
 	array<int, MAX_TYPE> recipe = {};
 	array<int, MAX_TYPE> produce = {};
 
-	weak_ptr<Storage> storage = weak_ptr<Storage>();
+	weak_ptr<Storage> storage_in = weak_ptr<Storage>();
+	weak_ptr<Storage> storage_out = weak_ptr<Storage>();
 	weak_ptr<Task> task = weak_ptr<Task>();
 	weak_ptr<Target> target;
 	weak_ptr<Construction> construction;
