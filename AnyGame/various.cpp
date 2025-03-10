@@ -247,6 +247,14 @@ bool addToStorage(weak_ptr<Storage>& storage, array<int, MAX_TYPE> types) {
 	}
 }
 
+array<int, MAX_TYPE> addArrays(array<int, MAX_TYPE> a, array<int, MAX_TYPE> b) {
+	array<int, MAX_TYPE> result = {};
+	for (int i = 0; i < MAX_TYPE; i++) {
+		result[i] = a[i] + b[i];
+	}
+	return result;
+}
+
 void insertStorageShared(vector<shared_ptr<Storage>>& storages, shared_ptr<Storage> storage) {
 	auto pos = lower_bound(storages.begin(), storages.end(), storage, storage_cmp_shared);
 	storages.insert(pos, storage);

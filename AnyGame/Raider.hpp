@@ -11,7 +11,7 @@ public:
 
 	weak_ptr<Target> prey = weak_ptr<Target>();
 
-	Raider(int z, int id, Vector2 pos, weak_ptr<Target> combat);
+	Raider(DEPTH z, int id, Vector2 pos, weak_ptr<Target> combat);
 
 	void update(vector<weak_ptr<Target>> targets);
 

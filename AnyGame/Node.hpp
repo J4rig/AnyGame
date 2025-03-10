@@ -12,7 +12,7 @@ public:
 
 	weak_ptr<Storage> storage;
 
-	Node(int z, int id, Vector2 pos, shared_ptr<float> r, weak_ptr<Storage> storage);
+	Node(DEPTH z, int id, Vector2 pos, shared_ptr<float> r, weak_ptr<Storage> storage);
 
 	void update();
 

@@ -5,19 +5,20 @@
 
 #include <iostream>
 
-Worker::Worker(int z, int id, int tribe, Vector2 pos, weak_ptr<Target> target) :
+Worker::Worker(DEPTH z, int id, int tribe, Vector2 pos, weak_ptr<Target> target) :
 	Drawing(z), id(id), tribe(tribe), pos(pos), target(target) {
 };
 
-void Worker::forgetStorage(shared_ptr<Storage> storage) {
+vector<int> Worker::forgetStorage(shared_ptr<Storage> storage) {
+	vector<int> result = {};
 	if (state == WORKER_STATES::IDLE) {
 		targeted_storages = {};
-		return;
+		return result;
 	}
 
 	if (state == WORKER_STATES::OPERATING) {
 		targeted_storages = {};
-		return;
+		return result;
 	}
 
 	if (state == WORKER_STATES::TRANSPORTING) { 
@@ -34,8 +35,7 @@ void Worker::forgetStorage(shared_ptr<Storage> storage) {
 					int output_index = s - types_to_deliver.size() - collected_types.size();
 
 					if (output_index < 0) {
-						//shared_ptr<Resource> new_resource = make_shared<Resource>(resource_id++, pos, collected_types[collected_types.size() + output_index]);
-						//resources.emplace_back(new_resource);
+						result.emplace_back(collected_types[collected_types.size() - output_index]);
 						collected_types.erase(collected_types.end() + output_index);
 					}
 					else {
@@ -51,22 +51,27 @@ void Worker::forgetStorage(shared_ptr<Storage> storage) {
 			}
 		}		
 	}
+	return result;
 }
 
 vector<int> Worker::die() {
 
 	if (state == WORKER_STATES::TRANSPORTING) {
-		while (!types_to_deliver.empty()) {
-			targeted_storages.front().lock()->will_be[types_to_deliver.front()]++;
-			types_to_deliver.erase(types_to_deliver.begin());
+		cout 
+		<< "Killing worker " << id << "\n\t"
+		<< "Types to deliver: " << types_to_deliver.size() << "\n\t"
+		<< "Collected types: " << collected_types.size() << "\n\t"
+		<< "Targeted storages: " << targeted_storages.size() << "\n";
+
+		for (int t : types_to_deliver) {
+			targeted_storages.front().lock()->will_be[t]++;
 			targeted_storages.erase(targeted_storages.begin());
 		}
-		int i = 0;
-		while (!targeted_storages.empty()) {
-				targeted_storages.front().lock()->will_be[collected_types[i]]--;
-				i++;
-				targeted_storages.erase(targeted_storages.begin());
+		for (int c : collected_types) {
+			targeted_storages.front().lock()->will_be[c]--;
+			targeted_storages.erase(targeted_storages.begin());
 		}
+
 		return collected_types;
 	}
 

@@ -3,9 +3,9 @@
 
 class Drawing {
 public :
-	int z;
+	DEPTH z;
 
-	Drawing(int z);
+	Drawing(DEPTH z);
 
 	virtual void draw() const ;
 };

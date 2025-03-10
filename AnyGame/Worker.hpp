@@ -31,7 +31,7 @@ public:
 	vector<weak_ptr<Storage>> targeted_storages = vector<weak_ptr<Storage>>();
 	weak_ptr<Task> targeted_task = weak_ptr<Task>();
 
-	Worker(int z, int id, int tribe, Vector2 pos, weak_ptr<Target> target);
+	Worker(DEPTH z, int id, int tribe, Vector2 pos, weak_ptr<Target> target);
 
 	void update(vector<shared_ptr<Storage>> storages, vector<shared_ptr<Task>> tasks);
 
@@ -45,5 +45,5 @@ public:
 
 	vector<int> die();
 
-	void forgetStorage(shared_ptr<Storage> storage);
+	vector<int> forgetStorage(shared_ptr<Storage> storage);
 };

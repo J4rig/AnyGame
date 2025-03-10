@@ -35,7 +35,7 @@ createNode(array<int,MAX_TYPE> types, Vector2 pos) {
 	new_storage->is = types;
 	new_storage->will_be = types;
 
-	shared_ptr<Node> new_node = make_shared<Node>(1,node_id++,pos, r, new_storage);
+	shared_ptr<Node> new_node = make_shared<Node>(DEPTH::NODE,node_id++,pos, r, new_storage);
 	
 	return make_tuple(new_storage, new_node);
 }
@@ -55,7 +55,7 @@ createStockpile(Vector2 pos) {
 	shared_ptr<Target> new_target = make_shared<Target>(target_id++, selected_tribe, nullptr, 10.0f, 30, 0, 0);
 
 	//stockpile
-	shared_ptr<Stockpile> new_stockpile = make_shared<Stockpile>(2,stockpile_id++, selected_tribe, pos, r, new_construction, weak_ptr<Storage>(), new_target);
+	shared_ptr<Stockpile> new_stockpile = make_shared<Stockpile>(DEPTH::STOCKPILE,stockpile_id++, selected_tribe, pos, r, new_construction, weak_ptr<Storage>(), new_target);
 	new_stockpile->target.lock()->pos = &new_stockpile->pos;
 	return make_tuple(new_storage, new_construction, new_target, new_stockpile);
 
@@ -82,7 +82,7 @@ createForge(array<int, MAX_TYPE> recipe, array<int, MAX_TYPE> produce, Vector2 p
 	shared_ptr<Target> new_target = make_shared<Target>(target_id++, selected_tribe, nullptr, 10, 30, 0, 0);
 
 	//forge
-	shared_ptr<Forge> new_forge = make_shared<Forge>(3,forge_id++, selected_tribe, pos, r, recipe, produce, new_construction, new_target);
+	shared_ptr<Forge> new_forge = make_shared<Forge>(DEPTH::FORGE,forge_id++, selected_tribe, pos, r, recipe, produce, new_construction, new_target);
 	new_forge->target.lock()->pos = &new_forge->pos;
 	return make_tuple(new_storage, new_construction, new_target, new_forge);
 }
@@ -236,7 +236,7 @@ int main() {
 			tribes[selected_tribe]->targets.emplace_back(new_target);
 
 			// worker
-			shared_ptr<Worker> new_worker = make_shared<Worker>(4,worker_id++, selected_tribe, mouse_pos, new_target);
+			shared_ptr<Worker> new_worker = make_shared<Worker>(DEPTH::WORKER,worker_id++, selected_tribe, mouse_pos, new_target);
 			new_worker->target.lock()->pos = &new_worker->pos;
 			drawings.emplace_back(new_worker);
 
@@ -249,7 +249,6 @@ int main() {
 				result = createStockpile(GetMousePosition());
 
 			insertStorageShared(storages, get<0>(result));
-			//insertStorageWeak(storages, get<0>(result));
 
 			tribes[selected_tribe]->settlements[selected_settlement]->constructions.emplace_back(get<1>(result));
 			tribes[selected_tribe]->targets.emplace_back(get<2>(result));
@@ -265,9 +264,9 @@ int main() {
 
 			tuple<shared_ptr<Storage>, shared_ptr<Construction>, shared_ptr<Target>, shared_ptr<Forge>> result = createForge(forge_recipe_types, forge_produce_types, GetMousePosition());
 			insertStorageShared(storages, get<0>(result));
-			//insertStorageWeak(storages, get<0>(result));
 			tribes[selected_tribe]->settlements[selected_settlement]->constructions.emplace_back(get<1>(result));
 			tribes[selected_tribe]->targets.emplace_back(get<2>(result));
+			targets.emplace_back(targets.emplace_back(get<2>(result)));
 			tribes[selected_tribe]->settlements[selected_settlement]->forges.emplace_back(get<3>(result));
 			drawings.emplace_back(get<3>(result));
 
@@ -287,7 +286,7 @@ int main() {
 			tribes[selected_tribe]->targets.emplace_back(new_target);
 
 			//raider
-			shared_ptr<Raider> new_raider = make_shared<Raider>(2, raider_id++, mouse_pos, new_target);
+			shared_ptr<Raider> new_raider = make_shared<Raider>(DEPTH::RAIDER, raider_id++, mouse_pos, new_target);
 			new_raider->target.lock()->pos = &new_raider->pos;
 			tribes[selected_tribe]->raiders.emplace_back(new_raider);
 			drawings.emplace_back(new_raider);
@@ -327,9 +326,8 @@ int main() {
 
 			for (int raider = 0; raider < tribe->raiders.size(); raider++) {
 				if (!tribe->raiders[raider]->target.expired() && tribe->raiders[raider]->target.lock()->isDead()) {
-
-					//delete target
-
+					int id = tribe->raiders[raider]->target.lock()->id;
+					erase_if(tribe->targets, [id](shared_ptr<Target> t) {return t->id == id; });
 
 					tribe->raiders.erase(tribe->raiders.begin() + raider);
 					raider--;
@@ -358,6 +356,7 @@ int main() {
 						tuple<shared_ptr<Storage>,shared_ptr<Node>> result = createNode(arrangeTypes(types), pos);
 						insertStorageShared(storages, get<0>(result));
 						nodes.emplace_back(get<1>(result));
+						drawings.emplace_back(get<1>(result));
 
 						
 						continue;
@@ -377,9 +376,12 @@ int main() {
 
 				}*/
 
-				for (int c = 0; c < settlement->constructions.size(); c++) {
+				//Kubincko 
+
+				/*for (int c = 0; c < settlement->constructions.size(); c++) {
 					if (!settlement->constructions[c]->task.expired() && settlement->constructions[c]->task.lock()->isCompleted()) {
-						//settlement->constructions[c]->task.lock()->finished = true;
+						int id = settlement->constructions[c]->task.lock()->id;
+						erase_if(settlement->tasks, [id](shared_ptr<Task> t) {return t->id == id; });
 						settlement->constructions.erase(settlement->constructions.begin() + c);
 						c--;
 						continue;
@@ -391,117 +393,236 @@ int main() {
 						insertTaskShared(settlement->tasks, new_task);
 						settlement->constructions[c]->task = new_task;
 					}
-				}
+				}*/
 
-				for (int stockpile = 0; stockpile < settlement->stockpiles.size(); stockpile++) {
-					if (settlement->stockpiles[stockpile]->target.expired() && settlement->stockpiles[stockpile]->destroyable) {
-						if (settlement->stockpiles[stockpile]->construction.expired()) {
-							for (shared_ptr<Worker> worker : settlement->workers) {
-								worker->forgetStorage(settlement->stockpiles[stockpile]->storage.lock());
+				for (int stockpile_i = 0; stockpile_i < settlement->stockpiles.size(); stockpile_i++) {
+					shared_ptr<Stockpile> stockpile = settlement->stockpiles[stockpile_i];
+					if (!stockpile->construction.expired()) {
+						shared_ptr<Construction> construction = stockpile->construction.lock();
+						if (stockpile->target.expired()) {
+							if (!construction->storage.expired()) {
+								for (shared_ptr<Worker> worker : settlement->workers) {
+									array<int,MAX_TYPE> types = arrangeTypes(worker->forgetStorage(construction->storage.lock()));
+									if (!types.empty()) {
+										tuple<shared_ptr<Storage>, shared_ptr<Node>> result = createNode(types, worker->pos);
+										insertStorageShared(storages, get<0>(result));
+										nodes.emplace_back(get<1>(result));
+										drawings.emplace_back(get<1>(result));
+									}
+								}
+
+								if (!stockpile->construction.lock()->storage.lock()->isEmpty()) {
+									tuple<shared_ptr<Storage>, shared_ptr<Node>> result = createNode(construction->storage.lock()->is, stockpile->pos);
+									insertStorageShared(storages, get<0>(result));
+									nodes.emplace_back(get<1>(result));
+									drawings.emplace_back(get<1>(result));
+								}
+
+								int id = construction->storage.lock()->id;
+								erase_if(storages, [id](shared_ptr<Storage> s) {; return s->id == id; });
 							}
 
-							tuple<shared_ptr<Storage>, shared_ptr<Node>> result = createNode(settlement->stockpiles[stockpile]->storage.lock()->is, settlement->stockpiles[stockpile]->pos);
-							insertStorageShared(storages, get<0>(result));
-							nodes.emplace_back(get<1>(result));
-
-							int id = settlement->stockpiles[stockpile]->storage.lock()->id;
-							erase_if(storages, [id](shared_ptr<Storage> s) {return s->id == id; });
-						}
-						else if (!settlement->stockpiles[stockpile]->construction.lock()->storage.expired()) {
-							for (shared_ptr<Worker> worker : settlement->workers) {
-								worker->forgetStorage(settlement->stockpiles[stockpile]->construction.lock()->storage.lock());
+							else if (!construction->task.expired()) {
+								int id = construction->task.lock()->id;
+								erase_if(settlement->tasks, [id](shared_ptr<Task> t) {return t->id == id; });
 							}
 
-							tuple<shared_ptr<Storage>, shared_ptr<Node>> result = createNode(settlement->stockpiles[stockpile]->construction.lock()->storage.lock()->is, settlement->stockpiles[stockpile]->pos);
-							insertStorageShared(storages, get<0>(result));
-							nodes.emplace_back(get<1>(result));
+							settlement->stockpiles.erase(settlement->stockpiles.begin() + stockpile_i);
+							stockpile_i--;
+							continue;
+						}
+						if (!construction->storage.expired()) {
+							shared_ptr<Storage> storage = construction->storage.lock();
+							if (storage->isFull(-1)) {
+								int id = storage->id;
+								erase_if(storages, [id](shared_ptr<Storage> s) {return s->id == id; });
 
-							int id = settlement->stockpiles[stockpile]->construction.lock()->storage.lock()->id;
-							erase_if(storages, [id](shared_ptr<Storage> s) {return s->id == id; });
+								shared_ptr<Task> new_task = make_shared<Task>(task_id++, construction->pos, 1, 5.0f, 2);
+								insertTaskShared(settlement->tasks, new_task);
+								construction->task = new_task;
+							}
 						}
 
-						else if (!settlement->stockpiles[stockpile]->construction.lock()->task.expired()) {
-							int id = settlement->stockpiles[stockpile]->construction.lock()->task.lock()->id;
+						if (!construction->task.expired() && construction->task.lock()->isCompleted()) {
+							int id = construction->task.lock()->id;
 							erase_if(settlement->tasks, [id](shared_ptr<Task> t) {return t->id == id; });
+							id = construction->id;
+							erase_if(settlement->constructions, [id](shared_ptr<Construction> c) {return c->id == id; });
+							
+							array<int, MAX_TYPE> limits = { 0 };
+							limits.fill(STOCKPILE_CAPACITY);
+
+							shared_ptr<Storage> new_storage = make_shared<Storage>(storage_id++, stockpile->tribe, stockpile->pos, stockpile->r, 1, STOCKPILE_CAPACITY, limits, true);
+							insertStorageShared(storages, new_storage);
+							stockpile->storage = new_storage;
 						}
-
-						settlement->stockpiles.erase(settlement->stockpiles.begin() + stockpile);
-						stockpile--;
-						continue;
 					}
+					else {
+						if (stockpile->target.expired()) {
+							for (shared_ptr<Worker> worker : settlement->workers) {
+								array<int, MAX_TYPE> types = arrangeTypes(worker->forgetStorage(stockpile->storage.lock()));
+								if (!types.empty()) {
+									tuple<shared_ptr<Storage>, shared_ptr<Node>> result = createNode(types, worker->pos);
+									insertStorageShared(storages, get<0>(result));
+									nodes.emplace_back(get<1>(result));
+									drawings.emplace_back(get<1>(result));
+								}
+							}
 
-					if (settlement->stockpiles[stockpile]->construction.expired() && settlement->stockpiles[stockpile]->storage.expired() && settlement->stockpiles[stockpile]->destroyable) {
-						array<int, MAX_TYPE> limits = { 0 };
-						limits.fill(STOCKPILE_CAPACITY);
+							if (!stockpile->storage.lock()->isEmpty()) {
+								tuple<shared_ptr<Storage>, shared_ptr<Node>> result = createNode(stockpile->storage.lock()->is, stockpile->pos);
+								insertStorageShared(storages, get<0>(result));
+								nodes.emplace_back(get<1>(result));
+								drawings.emplace_back(get<1>(result));
+							}
 
-						shared_ptr<Storage> new_storage = make_shared<Storage>(storage_id++, settlement->stockpiles[stockpile]->tribe, settlement->stockpiles[stockpile]->pos, settlement->stockpiles[stockpile]->r, 1, STOCKPILE_CAPACITY, limits, true);
-						insertStorageShared(storages, new_storage);
-						settlement->stockpiles[stockpile]->storage = new_storage;
+							int id = stockpile->storage.lock()->id;
+							erase_if(storages, [id](shared_ptr<Storage> s) {return s->id == id; });
 
+							settlement->stockpiles.erase(settlement->stockpiles.begin() + stockpile_i);
+							stockpile_i--;
+							continue;
+						}
 					}
 				}
 
-				for (int forge = 0; forge < settlement->forges.size(); forge++) {
-				
-					if (settlement->forges[forge]->target.expired()) {
-						if (settlement->forges[forge]->construction.expired()) {
-							//settlement->forges[forge]->storage.lock()->destroy = true;
-							if (!settlement->forges[forge]->task.expired()) {
-							//	settlement->forges[forge]->task.lock()->destroy = true;
+				for (int forge_i = 0; forge_i < settlement->forges.size(); forge_i++) {
+					shared_ptr<Forge> forge = settlement->forges[forge_i];
+					if (!forge->construction.expired()) {
+						shared_ptr<Construction> construction = forge->construction.lock();
+						if (forge->target.expired()) {
+							if (!construction->storage.expired()) {
+								for (shared_ptr<Worker> worker : settlement->workers) {
+									array<int, MAX_TYPE> types = arrangeTypes(worker->forgetStorage(construction->storage.lock()));
+									if (!types.empty()) {
+										tuple<shared_ptr<Storage>, shared_ptr<Node>> result = createNode(types, worker->pos);
+										insertStorageShared(storages, get<0>(result));
+										nodes.emplace_back(get<1>(result));
+										drawings.emplace_back(get<1>(result));
+									}
+								}
+
+								if (!forge->construction.lock()->storage.lock()->isEmpty()) {
+									tuple<shared_ptr<Storage>, shared_ptr<Node>> result = createNode(construction->storage.lock()->is, forge->pos);
+									insertStorageShared(storages, get<0>(result));
+									nodes.emplace_back(get<1>(result));
+									drawings.emplace_back(get<1>(result));
+								}
+
+								int id = construction->storage.lock()->id;
+								erase_if(storages, [id](shared_ptr<Storage> s) {; return s->id == id; });
+							}
+
+							else if (!construction->task.expired()) {
+								int id = construction->task.lock()->id;
+								erase_if(settlement->tasks, [id](shared_ptr<Task> t) {return t->id == id; });
+							}
+
+							settlement->forges.erase(settlement->forges.begin() + forge_i);
+							forge_i--;
+							continue;
+						}
+						if (!construction->storage.expired()) {
+							shared_ptr<Storage> storage = construction->storage.lock();
+							if (storage->isFull(-1)) {
+								int id = storage->id;
+								erase_if(storages, [id](shared_ptr<Storage> s) {return s->id == id; });
+
+								shared_ptr<Task> new_task = make_shared<Task>(task_id++, construction->pos, 1, 5.0f, 2);
+								insertTaskShared(settlement->tasks, new_task);
+								construction->task = new_task;
 							}
 						}
-						else if (!settlement->forges[forge]->construction.lock()->storage.expired()) {
-							//settlement->forges[forge]->construction.lock()->storage.lock()->destroy = true;
 
+						if (!construction->task.expired() && construction->task.lock()->isCompleted()) {
+							int id = construction->task.lock()->id;
+							erase_if(settlement->tasks, [id](shared_ptr<Task> t) {return t->id == id; });
+							id = construction->id;
+							erase_if(settlement->constructions, [id](shared_ptr<Construction> c) {return c->id == id; });
+
+							array<int, MAX_TYPE> limits = { 0 };
+							limits.fill(STOCKPILE_CAPACITY);
+
+							shared_ptr<Storage> new_storage_in = make_shared<Storage>(stockpile_id++, forge->tribe, forge->pos, forge->r, 2, resourceCount(forge->recipe), forge->recipe, true);
+							insertStorageShared(storages, new_storage_in);
+
+							shared_ptr<Storage> new_storage_out = make_shared<Storage>(stockpile_id++, forge->tribe, forge->pos, forge->r, 0, resourceCount(forge->produce), forge->produce, true);
+							insertStorageShared(storages, new_storage_out);
+
+							forge->storage_in = new_storage_in;
+							forge->storage_out = new_storage_out;
 						}
-						else if (!settlement->forges[forge]->construction.lock()->task.expired()) {
-							//settlement->forges[forge]->construction.lock()->task.lock()->destroy = true;
+					}
+
+					else {
+						if (forge->target.expired()) {
+							for (shared_ptr<Worker> worker : settlement->workers) {
+								array<int, MAX_TYPE> types = arrangeTypes(worker->forgetStorage(forge->storage_in.lock()));
+								if (!types.empty()) {
+									tuple<shared_ptr<Storage>, shared_ptr<Node>> result = createNode(types, worker->pos);
+									insertStorageShared(storages, get<0>(result));
+									nodes.emplace_back(get<1>(result));
+									drawings.emplace_back(get<1>(result));
+								}
+								types = arrangeTypes(worker->forgetStorage(forge->storage_out.lock()));
+								if (!types.empty()) {
+									tuple<shared_ptr<Storage>, shared_ptr<Node>> result = createNode(types, worker->pos);
+									insertStorageShared(storages, get<0>(result));
+									nodes.emplace_back(get<1>(result));
+									drawings.emplace_back(get<1>(result));
+								}
+							}
+
+							if (!forge->storage_in.lock()->isEmpty() || !forge->storage_out.lock()->isEmpty()) {
+								array<int,MAX_TYPE> types = addArrays(forge->storage_in.lock()->is, forge->storage_out.lock()->is);
+								tuple<shared_ptr<Storage>, shared_ptr<Node>> result = createNode(types, forge->pos);
+								insertStorageShared(storages, get<0>(result));
+								nodes.emplace_back(get<1>(result));
+								drawings.emplace_back(get<1>(result));
+							}
+
+							int id_in = forge->storage_in.lock()->id;
+							int id_out = forge->storage_out.lock()->id;
+							erase_if(storages, [id_in, id_out](shared_ptr<Storage> s) {return s->id == id_in || s->id == id_out; });
+
+							settlement->forges.erase(settlement->forges.begin() + forge_i);
+							forge_i--;
+							continue;
 						}
 
-						settlement->forges.erase(settlement->forges.begin() + forge);
-						forge--;
-						continue;
-					}
+						if (!forge->task.expired()) {
+							shared_ptr<Task> task = forge->task.lock();
+							if (task->isCompleted()) {
+								forge->storage_in.lock()->is = { 0 };
+								forge->storage_in.lock()->will_be = { 0 };
 
-					if (settlement->forges[forge]->construction.expired() && settlement->forges[forge]->storage_in.expired()) {
-						shared_ptr<Storage> new_storage_in = make_shared<Storage>(stockpile_id++, settlement->forges[forge]->tribe, settlement->forges[forge]->pos, settlement->forges[forge]->r, 2,resourceCount(settlement->forges[forge]->recipe), settlement->forges[forge]->recipe, true);
-						insertStorageShared(storages, new_storage_in);
-						
-						shared_ptr<Storage> new_storage_out = make_shared<Storage>(stockpile_id++, settlement->forges[forge]->tribe, settlement->forges[forge]->pos, settlement->forges[forge]->r, 0, resourceCount(settlement->forges[forge]->produce), settlement->forges[forge]->produce, true);
-						insertStorageShared(storages, new_storage_out);
+								addToStorage(forge->storage_out, forge->produce);
 
+								int id = task->id;
+								erase_if(settlement->tasks, [id](shared_ptr<Task> t) {return t->id == id; });
+							}
 
-						settlement->forges[forge]->storage_in = new_storage_in;
-						settlement->forges[forge]->storage_out = new_storage_out;
-					}
-
-					if (!settlement->forges[forge]->task.expired() && settlement->forges[forge]->task.lock()->isCompleted()) {
-						settlement->forges[forge]->storage_in.lock()->is = { 0 };
-						settlement->forges[forge]->storage_in.lock()->will_be = { 0 };
-
-						addToStorage(settlement->forges[forge]->storage_out, settlement->forges[forge]->produce);
-
-						int id = settlement->forges[forge]->task.lock()->id;
-						erase_if(settlement->tasks, [id](shared_ptr<Task> t) {return t->id == id; });
-					}
-
-					if ((!settlement->forges[forge]->task.expired() && settlement->forges[forge]->storage_in.lock()->hasSpace(-1))) {
-						int id = settlement->forges[forge]->task.lock()->id;
-						erase_if(settlement->tasks, [id](shared_ptr<Task> t) {return t->id == id; });
-					}
-
-					if (settlement->forges[forge]->task.expired() && !settlement->forges[forge]->storage_in.expired() && settlement->forges[forge]->storage_in.lock()->isFull(-1) &&
-						settlement->forges[forge]->storage_out.lock()->capacity >= settlement->forges[forge]->storage_out.lock()->isStored() + resourceCount(settlement->forges[forge]->produce)) {
-						shared_ptr<Task> new_task = make_shared<Task>(task_id++, settlement->forges[forge]->pos, 2, 3.0f, 1);
-						insertTaskShared(settlement->tasks, new_task);
-						settlement->forges[forge]->task = new_task;
-					}
+							if (forge->storage_in.lock()->hasSpace(-1)) {
+								int id = task->id;
+								erase_if(settlement->tasks, [id](shared_ptr<Task> t) {return t->id == id; });
+							}
+						}
+						else {
+							if (forge->storage_in.lock()->isFull(-1) && forge->storage_out.lock()->capacity >= forge->storage_out.lock()->isStored() + resourceCount(forge->produce)) {
+								shared_ptr<Task> new_task = make_shared<Task>(task_id++, forge->pos, 2, 3.0f, 1);
+								insertTaskShared(settlement->tasks, new_task);
+								forge->task = new_task;
+							}
+						}
+					}	
 				}
 			}
 		}
 
 		BeginDrawing();
 		ClearBackground(BLACK);
+
+		DrawText(("storages: " + to_string(storages.size())).c_str(), 0, 50, 20, WHITE);
 
 		if (selected_tribe != -1) {
 			DrawText(to_string(selected_tribe).c_str(), 0, 0, 20, tribe_color[selected_tribe]);
@@ -533,8 +654,15 @@ int main() {
 			}
 		}*/
 
-		for (shared_ptr<Node> node : nodes) {
-			node->update();
+		for (int node = 0; node < nodes.size(); node ++) {
+			if (nodes[node]->storage.lock()->isEmpty()) {
+				int id = nodes[node]->storage.lock()->id;
+				erase_if(storages, [id](weak_ptr<Storage> s) {return s.lock()->id == id; });
+				nodes.erase(nodes.begin() + node);
+				node--;
+				continue;
+			}
+			nodes[node]->update();
 		}
 
 		std::erase_if(storages, [](weak_ptr<Storage> s) {return s.expired(); });

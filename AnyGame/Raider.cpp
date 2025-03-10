@@ -2,7 +2,7 @@
 #include "Raider.hpp"
 #include "Target.hpp"
 
-Raider::Raider(int z,int id, Vector2 pos, weak_ptr<Target> target) :
+Raider::Raider(DEPTH z,int id, Vector2 pos, weak_ptr<Target> target) :
 	Drawing(z), id(id), pos(pos), target(target) {
 };
 

@@ -24,6 +24,16 @@ constexpr auto MAX_PRIORITY = 4;
 
 constexpr auto STOCKPILE_CAPACITY = 10;
 
+enum class DEPTH {
+	STOCKPILE = 0,
+	FORGE,
+	GENERATOR,
+	FIELD,
+	NODE,
+	RAIDER,
+	WORKER,
+};
+
 
 constexpr auto NODE_R = 5.0f;
 constexpr auto STOCKPILE_R = 40.0f;
@@ -113,6 +123,8 @@ queue<int> cutToCapacity(array<int, MAX_TYPE> stored_types, int capacity);
 array<int, MAX_TYPE> canBeStored(vector<shared_ptr<Storage>> storages);
 
 bool addToStorage(weak_ptr<Storage>& storage, array<int, MAX_TYPE> types);
+
+array<int, MAX_TYPE> addArrays(array<int, MAX_TYPE> a, array<int, MAX_TYPE> b);
 
 void insertStorageShared(vector<shared_ptr<Storage>>& storages, shared_ptr<Storage> storage);
 

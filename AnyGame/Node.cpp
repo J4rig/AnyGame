@@ -1,7 +1,7 @@
 #pragma once
 #include "Node.hpp"
 
-Node::Node(int z, int id, Vector2 pos, shared_ptr<float> r, weak_ptr<Storage> storage) :
+Node::Node(DEPTH z, int id, Vector2 pos, shared_ptr<float> r, weak_ptr<Storage> storage) :
 	Drawing(z), id(id), pos(pos), r(r), storage(storage) {
 };
 

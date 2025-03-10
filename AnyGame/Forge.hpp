@@ -21,7 +21,7 @@ public:
 
 	
 
-	Forge(int z, int id, int tribe, Vector2 pos, shared_ptr<float> r, array<int, MAX_TYPE> recipe, array<int, MAX_TYPE> produce, weak_ptr<Construction> construction, weak_ptr<Target> target);
+	Forge(DEPTH z, int id, int tribe, Vector2 pos, shared_ptr<float> r, array<int, MAX_TYPE> recipe, array<int, MAX_TYPE> produce, weak_ptr<Construction> construction, weak_ptr<Target> target);
 
 	void draw() const;
 
