@@ -108,14 +108,14 @@ bool Worker::transportResources(vector<shared_ptr<Storage>> storages) {
 
 	bool first = true;
 	while (!isPacked()) {
-		shared_ptr<Storage> deliver_to = findStorageToDeliverTo(pos, storages).lock(); //finds storage to deliver to
+		shared_ptr<Storage> deliver_to = findStorageToDeliverTo(pos, tribe, storages).lock(); //finds storage to deliver to
 		if (deliver_to == nullptr) {
 			break;
 		}
 
 		array<int, MAX_TYPE> to_types = { 0 }; // creates an array of types that can be delivered to found storage
 		for (int i = 0; i < MAX_TYPE; i++) {
-			to_types[i] += deliver_to->can_be[i] - deliver_to->will_be[i];
+			to_types[i] += min(deliver_to->can_be[i] - deliver_to->will_be[i],deliver_to->spaceLeft(-1));
 		}
 
 		array<int, MAX_TYPE> from_types = { 0 };
@@ -126,7 +126,8 @@ bool Worker::transportResources(vector<shared_ptr<Storage>> storages) {
 			break;
 		}
 
-		queue<int> types_to_pickup = cutToCapacity(from_types, capacity - (int)types_to_deliver.size());
+
+		vector<int> types_to_pickup = cutToCapacity(from_types, to_types, capacity - (int)types_to_deliver.size(),  deliver_to->spaceLeft(-1));
 
 		if (first) {
 			targeted_storages = {};
@@ -142,7 +143,7 @@ bool Worker::transportResources(vector<shared_ptr<Storage>> storages) {
 			deliver_vector.emplace_back(deliver_to);
 			deliver_to->will_be[types_to_pickup.front()]++;
 			
-			types_to_pickup.pop();
+			types_to_pickup.erase(types_to_pickup.begin());
 		}
 	}
 

@@ -55,5 +55,8 @@ bool Storage::hasSpace(vector<int> types) {
 }
 
 int Storage::spaceLeft(int type) {
-	return min(capacity - aboutToBeStored(), can_be[type] - will_be[type]);
+	if (type >= 0 && type < MAX_TYPE) {
+		return min(capacity - aboutToBeStored(), can_be[type] - will_be[type]);
+	}
+	return capacity - aboutToBeStored();
 } 

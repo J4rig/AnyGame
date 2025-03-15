@@ -17,7 +17,7 @@ public:
 
 	bool can_take;
 
-	array<array<int, MAX_TRIBE>, MAX_TYPE> occupied = {};
+	array<array<int, MAX_TYPE>, MAX_TRIBE> reserved = {};
 	array<int, MAX_TYPE> is = {};
 	array<int, MAX_TYPE> will_be = {};
 	array<int, MAX_TYPE> can_be = {};

@@ -58,7 +58,6 @@ createStockpile(Vector2 pos) {
 	shared_ptr<Stockpile> new_stockpile = make_shared<Stockpile>(DEPTH::STOCKPILE,stockpile_id++, selected_tribe, pos, r, new_construction, weak_ptr<Storage>(), new_target);
 	new_stockpile->target.lock()->pos = &new_stockpile->pos;
 	return make_tuple(new_storage, new_construction, new_target, new_stockpile);
-
 }
 
 //tuple<shared_ptr<Storage>, shared_ptr<Task>, shared_ptr<Generator>>

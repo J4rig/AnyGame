@@ -42,17 +42,14 @@ weak_ptr<Storage> findStorageToStore(Vector2 point, vector<shared_ptr<Storage>> 
 	return result;
 }
 
-weak_ptr<Storage> findStorageToDeliverTo(Vector2 point, vector<shared_ptr<Storage>> storages) {
-	vector<shared_ptr<Storage>> found_storages = vector<shared_ptr<Storage>>();
+weak_ptr<Storage> findStorageToDeliverTo(Vector2 point, int tribe, vector<shared_ptr<Storage>> storages) {
+	vector<shared_ptr<Storage>> found_storages = {};
 
 	array<array<int, MAX_TYPE>, MAX_PRIORITY> stored_resources = array<array<int, MAX_TYPE>, MAX_PRIORITY>();
 
 
 	for (shared_ptr<Storage> s : storages) {
-		if (s->priority >= MAX_PRIORITY) {
-			cout << "WARNING: max_priority exceeded\n";
-			s->priority = MAX_PRIORITY - 1;
-		}
+		if (s->tribe != tribe && s->tribe != -1) continue;
 
 		for (int i = 0; i < MAX_TYPE; i++) {
 			stored_resources[s->priority][i] += s->will_be[i];
@@ -95,7 +92,6 @@ weak_ptr<Storage> findStorageToDeliverTo(Vector2 point, vector<shared_ptr<Storag
 			}
 		}
 	}
-
 	return result;
 }
 
@@ -106,9 +102,8 @@ weak_ptr<Storage> findStorageToTakeFrom(Vector2 point, int tribe, vector<shared_
 	weak_ptr<Storage> result = weak_ptr<Storage>();
 
 	for (shared_ptr<Storage> s : storages) {
-		if (s->priority >= max_priority || !s->can_take) {
-			continue;
-		}
+		if (s->tribe != tribe && s->tribe != -1) continue;
+		if (s->priority >= max_priority || !s->can_take) continue;
 
 		std::array<int, MAX_TYPE> tmp = hasTypes(s->will_be, wanted_types);
 		if (resourceCount(tmp) > 0 && (new_distance = min(Vector2Distance(point, s->pos), min_distance)) != min_distance) {
@@ -212,14 +207,15 @@ int resourceCount(array<int, MAX_TYPE> stored_types) {
 
 
 
-queue<int> cutToCapacity(array<int, MAX_TYPE> stored_types, int capacity) {
-	queue<int> result;
+vector<int> cutToCapacity(array<int, MAX_TYPE> from_types, array<int, MAX_TYPE> to_types, int capacity, int storage_space_left) {
+	vector<int> result = {};
 	for (int i = 0; i < MAX_TYPE; i++) {
-		for (int j = 0; j < stored_types[i]; j++) {
-			if (result.size() < capacity) {
-				result.push(i);
-			}
-			else break;
+		int n = min(from_types[i], min(to_types[i], storage_space_left));
+		for (int j = 0; j < n; j++) {
+			if (result.size() == capacity) break;
+			storage_space_left--; 
+			result.emplace_back(i);
+			
 		}
 	}
 	return result;

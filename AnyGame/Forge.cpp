@@ -6,7 +6,7 @@
 
 Forge::Forge(DEPTH z,int id, int tribe, Vector2 pos, shared_ptr<float> r, array<int, MAX_TYPE> recipe, array<int, MAX_TYPE> produce,
 	weak_ptr<Construction> construction, weak_ptr<Target> target) :
-	Drawing(z), id(id), pos(pos), r(r), recipe(recipe), produce(produce), construction(construction), target(target) {
+	Drawing(z), id(id), tribe(tribe), pos(pos), r(r), recipe(recipe), produce(produce), construction(construction), target(target) {
 };
 
 void Forge::draw() const {

@@ -14,8 +14,6 @@ constexpr auto MAX_TYPE = 4;
 
 constexpr auto MAX_TRIBE = 4;
 
-constexpr auto NATURAL_TYPE = 3;
-
 constexpr auto SPEED_MOD = 100;
 
 constexpr auto WORKER_CAPACITY = 4;
@@ -100,7 +98,7 @@ Vector2 rotateAroundPoint(Vector2 point, Vector2 center, float angleInRads);
 
 weak_ptr<Storage> findStorageToIdle(Vector2 point, vector<shared_ptr<Storage>> storages);
 
-weak_ptr<Storage> findStorageToDeliverTo(Vector2 point, vector<shared_ptr<Storage>> storages);
+weak_ptr<Storage> findStorageToDeliverTo(Vector2 point, int tribe, vector<shared_ptr<Storage>> storages);
 
 weak_ptr<Storage> findStorageToStore(Vector2 point, vector<shared_ptr<Storage>> storages, vector<int> types);
 
@@ -118,7 +116,7 @@ array<int, MAX_TYPE> arrangeTypes(vector<int> types);
 
 int resourceCount(array<int, MAX_TYPE> stored_types);
 
-queue<int> cutToCapacity(array<int, MAX_TYPE> stored_types, int capacity);
+vector<int> cutToCapacity(array<int, MAX_TYPE> from_types, array<int, MAX_TYPE> to_types, int capacity, int storage_space_left);
 
 array<int, MAX_TYPE> canBeStored(vector<shared_ptr<Storage>> storages);
 
