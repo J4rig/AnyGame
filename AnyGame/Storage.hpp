@@ -35,5 +35,3 @@ public:
 };
 
 inline auto const storage_cmp_shared = [](shared_ptr<Storage> left, shared_ptr<Storage> right) {return left->priority > right->priority; };
-
-inline auto const storage_cmp_weak = [](weak_ptr<Storage> left, weak_ptr<Storage> right) {return left.lock()->priority > right.lock()->priority; };

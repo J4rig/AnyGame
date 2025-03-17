@@ -126,8 +126,14 @@ bool Worker::transportResources(vector<shared_ptr<Storage>> storages) {
 			break;
 		}
 
+		vector<int> types_to_cut = cutToCapacity(from_types, to_types, capacity - (int)types_to_deliver.size(),  deliver_to->spaceLeft(-1));
 
-		vector<int> types_to_pickup = cutToCapacity(from_types, to_types, capacity - (int)types_to_deliver.size(),  deliver_to->spaceLeft(-1));
+		vector<int> types_to_pickup = {};
+		for (int type : types_to_cut) {
+			if (take_from->is[type] > take_from->reserved[tribe][type]) {
+				types_to_pickup.emplace_back(type);
+			}
+		}
 
 		if (first) {
 			targeted_storages = {};
@@ -138,7 +144,8 @@ bool Worker::transportResources(vector<shared_ptr<Storage>> storages) {
 			types_to_deliver.emplace_back(types_to_pickup.front());
 
 			targeted_storages.emplace_back(take_from);
-			take_from->will_be[types_to_pickup.front()]--;
+			take_from->reserved[tribe][types_to_pickup.front()]++;
+			//take_from->will_be[types_to_pickup.front()]--;
 
 			deliver_vector.emplace_back(deliver_to);
 			deliver_to->will_be[types_to_pickup.front()]++;
@@ -196,7 +203,7 @@ void Worker::update( vector<shared_ptr<Storage>> storages, vector<shared_ptr<Tas
 				targeted_storages.erase(targeted_storages.begin());
 			}
 
-			weak_ptr<Storage> tmp = findStorageToIdle(pos, storages);
+			weak_ptr<Storage> tmp = findStorageToIdle(pos, tribe, storages);
 			if (!tmp.expired()) {
 				targeted_storages.emplace_back(tmp);
 			}
@@ -208,14 +215,20 @@ void Worker::update( vector<shared_ptr<Storage>> storages, vector<shared_ptr<Tas
 			if (Vector2Distance(pos, targeted_storages.front().lock()->pos) <= *(targeted_storages.front().lock()->r.lock()) + r) {
 				if (targeted_storages.front().lock()->is[types_to_deliver.front()] > 0) {
 					targeted_storages.front().lock()->is[types_to_deliver.front()]--;
+					targeted_storages.front().lock()->reserved[tribe][types_to_deliver.front()]--;
+					targeted_storages.front().lock()->will_be[types_to_deliver.front()]--;
 
 					collected_types.emplace_back(types_to_deliver.front());
 					types_to_deliver.erase(types_to_deliver.begin());
 
 					targeted_storages.erase(targeted_storages.begin());
 				}
-				else { // waiting for resorce to be delivered
-					//pos = rotateAroundPoint(pos, targeted_storages.front().lock()->pos, 0.5f * GetFrameTime());
+				else { // resurce has already been taken
+					int output_index = collected_types.size() + types_to_deliver.size();
+					targeted_storages[output_index].lock()->will_be[types_to_deliver.front()]--;
+					targeted_storages.erase(targeted_storages.begin() + output_index);
+					targeted_storages.erase(targeted_storages.begin());
+					types_to_deliver.erase(types_to_deliver.begin());
 				}
 			}
 			else {
@@ -226,6 +239,7 @@ void Worker::update( vector<shared_ptr<Storage>> storages, vector<shared_ptr<Tas
 			if (Vector2Distance(pos, targeted_storages.front().lock()->pos) <= *targeted_storages.front().lock()->r.lock() + r) { // TODO fix distance parameter
 
 				targeted_storages.front().lock()->is[collected_types.front()]++;
+				
 				collected_types.erase(collected_types.begin());
 
 				targeted_storages.erase(targeted_storages.begin());
@@ -240,7 +254,7 @@ void Worker::update( vector<shared_ptr<Storage>> storages, vector<shared_ptr<Tas
 			}
 		}
 		else {
-			//state = WORKER_STATES::IDLE;
+			state = WORKER_STATES::IDLE;
 		}
 	}
 

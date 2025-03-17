@@ -23,7 +23,7 @@ void Stockpile::draw() const {
 
 		DrawText((to_string(storage.lock()->isStored()) + "/" + to_string(storage.lock()->capacity)).c_str(), (int)pos.x - 10, (int)pos.y, 10, WHITE);
 		//DrawText(("s: " + to_string(id)).c_str(),pos.x-5,pos.y-r-2,15,RED);
-		//DrawText(("r: " + to_string(storage.lock()->id) + " p: " + to_string(storage.lock()->priority)).c_str(), pos.x + 5, pos.y + r - 2, 15, GREEN);
+		//DrawText(("r: " + to_string(storage.lock()->id) + " p: " + to_string(storage.lock()->priority)).c_str(), pos.x + 5, pos.y + *r - 2, 15, GREEN);
 	}
 	else if (!construction.lock()->storage.expired()) {
 		DrawRing(pos, *r - 2, *r, 0, 360, 0, RED);

@@ -656,6 +656,15 @@ int main() {
 		for (int node = 0; node < nodes.size(); node ++) {
 			if (nodes[node]->storage.lock()->isEmpty()) {
 				int id = nodes[node]->storage.lock()->id;
+
+				for (shared_ptr<Tribe> tribe : tribes) {
+					for (shared_ptr<Settlement> settlement : tribe->settlements) {
+						for (shared_ptr<Worker> worker : settlement->workers) {
+							worker->forgetStorage(nodes[node]->storage.lock());
+						}
+					}
+				}
+
 				erase_if(storages, [id](weak_ptr<Storage> s) {return s.lock()->id == id; });
 				nodes.erase(nodes.begin() + node);
 				node--;

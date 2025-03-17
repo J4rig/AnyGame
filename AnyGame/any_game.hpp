@@ -16,7 +16,7 @@ constexpr auto MAX_TRIBE = 4;
 
 constexpr auto SPEED_MOD = 100;
 
-constexpr auto WORKER_CAPACITY = 4;
+constexpr auto WORKER_CAPACITY = 3;
 
 constexpr auto MAX_PRIORITY = 4;
 
@@ -96,11 +96,9 @@ class Worker;
 
 Vector2 rotateAroundPoint(Vector2 point, Vector2 center, float angleInRads);
 
-weak_ptr<Storage> findStorageToIdle(Vector2 point, vector<shared_ptr<Storage>> storages);
+weak_ptr<Storage> findStorageToIdle(Vector2 point, int tribe, vector<shared_ptr<Storage>> storages);
 
 weak_ptr<Storage> findStorageToDeliverTo(Vector2 point, int tribe, vector<shared_ptr<Storage>> storages);
-
-weak_ptr<Storage> findStorageToStore(Vector2 point, vector<shared_ptr<Storage>> storages, vector<int> types);
 
 weak_ptr<Storage> findStorageToTakeFrom(Vector2 point, int tribe, vector<shared_ptr<Storage>> storages, array<int, MAX_TYPE>& return_types, array<int, MAX_TYPE> wanted_types, int max_priority);
 
@@ -116,6 +114,8 @@ array<int, MAX_TYPE> arrangeTypes(vector<int> types);
 
 int resourceCount(array<int, MAX_TYPE> stored_types);
 
+int unreservedCount(array<int, MAX_TYPE> stored, array<int, MAX_TYPE> reserved);
+
 vector<int> cutToCapacity(array<int, MAX_TYPE> from_types, array<int, MAX_TYPE> to_types, int capacity, int storage_space_left);
 
 array<int, MAX_TYPE> canBeStored(vector<shared_ptr<Storage>> storages);
@@ -126,8 +126,4 @@ array<int, MAX_TYPE> addArrays(array<int, MAX_TYPE> a, array<int, MAX_TYPE> b);
 
 void insertStorageShared(vector<shared_ptr<Storage>>& storages, shared_ptr<Storage> storage);
 
-void insertStorageWeak(vector<weak_ptr<Storage>>& storages, shared_ptr<Storage> storage);
-
 void insertTaskShared(vector<shared_ptr<Task>>& tasks, shared_ptr<Task> task);
-
-void insertTaskWeak(vector<weak_ptr<Task>>& tasks, shared_ptr<Task> task);

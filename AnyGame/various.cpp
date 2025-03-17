@@ -7,38 +7,18 @@
 #include <iostream>
 #include <algorithm>
 
-weak_ptr<Storage> findStorageToIdle(Vector2 point, vector<shared_ptr<Storage>> storages) {
+weak_ptr<Storage> findStorageToIdle(Vector2 point, int tribe, vector<shared_ptr<Storage>> storages) {
 	float min_distance = numeric_limits<float>::max();
 	float new_distance;
 
 	weak_ptr<Storage> result = weak_ptr<Storage>();
 
 	for (shared_ptr<Storage> s : storages) {
-		if ((new_distance = min(Vector2Distance(point, s->pos), min_distance)) != min_distance) {
+		if (s->tribe == tribe && (new_distance = min(Vector2Distance(point, s->pos), min_distance)) != min_distance) {
 			min_distance = new_distance;
 			result = s;
 		}
 	}
-	return result;
-}
-
-
-weak_ptr<Storage> findStorageToStore(Vector2 point, vector<shared_ptr<Storage>> storages, vector<int> types) {
-
-	float min_distance = numeric_limits<float>::max();
-	float new_distance;
-
-	weak_ptr<Storage> result = weak_ptr<Storage>();
-
-	for (shared_ptr<Storage> s : storages) {
-		if (s->hasSpace(types) && (result.expired() || result.lock()->priority <= s->priority)) {
-			if ((new_distance = min(Vector2Distance(point, s->pos), min_distance)) != min_distance || result.lock()->priority < s->priority) {
-				min_distance = new_distance;
-				result = s;
-			}
-		}
-	}
-
 	return result;
 }
 
@@ -105,8 +85,15 @@ weak_ptr<Storage> findStorageToTakeFrom(Vector2 point, int tribe, vector<shared_
 		if (s->tribe != tribe && s->tribe != -1) continue;
 		if (s->priority >= max_priority || !s->can_take) continue;
 
-		std::array<int, MAX_TYPE> tmp = hasTypes(s->will_be, wanted_types);
-		if (resourceCount(tmp) > 0 && (new_distance = min(Vector2Distance(point, s->pos), min_distance)) != min_distance) {
+		std::array<int, MAX_TYPE> tmp = hasTypes(s->is, wanted_types);
+		for (int i = 0; i < MAX_TYPE; i++) {
+			tmp[i] = max(tmp[i] - s->reserved[tribe][i], 0);
+		}
+
+		/*cout << resourceCount(tmp) << "\n";
+		cout << unreservedCount(tmp, s->reserved[tribe]) << "\n";*/
+
+		if (unreservedCount(tmp, s->reserved[tribe]) > 0 && (new_distance = min(Vector2Distance(point, s->pos), min_distance)) != min_distance) {
 			return_types = tmp;
 			min_distance = new_distance;
 			result = s;
@@ -207,6 +194,16 @@ int resourceCount(array<int, MAX_TYPE> stored_types) {
 
 
 
+int unreservedCount(array<int, MAX_TYPE> stored, array<int,MAX_TYPE> reserved) {
+	int result = 0;
+	for (int i = 0; i < MAX_TYPE; i++) {
+		result += max(stored[i] - reserved[i],0);
+	}
+	return result;
+}
+
+
+
 vector<int> cutToCapacity(array<int, MAX_TYPE> from_types, array<int, MAX_TYPE> to_types, int capacity, int storage_space_left) {
 	vector<int> result = {};
 	for (int i = 0; i < MAX_TYPE; i++) {
@@ -256,17 +253,7 @@ void insertStorageShared(vector<shared_ptr<Storage>>& storages, shared_ptr<Stora
 	storages.insert(pos, storage);
 }
 
-void insertStorageWeak(vector<weak_ptr<Storage>>& storages, shared_ptr<Storage> storage) {
-	auto pos = lower_bound(storages.begin(), storages.end(), storage, storage_cmp_weak);
-	storages.insert(pos, storage);
-}
-
 void insertTaskShared(vector<shared_ptr<Task>>& tasks, shared_ptr<Task> task) {
 	auto pos = lower_bound(tasks.begin(), tasks.end(), task, task_cmp_shared);
-	tasks.insert(pos, task);
-}
-
-void insertTaskWeak(vector<weak_ptr<Task>>& tasks, shared_ptr<Task> task) {
-	auto pos = lower_bound(tasks.begin(), tasks.end(), task, task_cmp_weak);
 	tasks.insert(pos, task);
 }
