@@ -131,7 +131,6 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="backup.cpp" />
     <ClCompile Include="Drawing.cpp" />
     <ClCompile Include="Node.cpp" />
     <ClCompile Include="Target.cpp" />
