@@ -3,6 +3,7 @@
 #include "Storage.hpp"
 #include "Task.hpp"
 #include "Construction.hpp"
+#include "Target.hpp"
 
 Forge::Forge(DEPTH z,int id, int tribe, Vector2 pos, shared_ptr<float> r, array<int, MAX_TYPE> recipe, array<int, MAX_TYPE> produce,
 	weak_ptr<Construction> construction, weak_ptr<Target> target) :
@@ -47,4 +48,25 @@ void Forge::draw() const {
 	else {
 		DrawRing(pos, *r - 2, *r, 0, 360, 0, RED);
 	}
+}
+
+tuple<shared_ptr<Storage>, shared_ptr<Construction>, shared_ptr<Target>, shared_ptr<Forge>>
+createForge(array<int, MAX_TYPE> recipe, array<int, MAX_TYPE> produce, Vector2 pos) {
+	shared_ptr<float> r = make_shared<float>(FORGE_R);
+	//construction storage
+	std::array<int, MAX_TYPE> limits = { 0 };
+	limits[1] = 1;
+	limits[2] = 1;
+	shared_ptr<Storage> new_storage = make_shared<Storage>(storage_id++, selected_tribe, pos, r, 3, 2, limits, false);
+
+	//construction
+	shared_ptr<Construction> new_construction = make_shared<Construction>(construction_id++, pos, new_storage, weak_ptr<Task>());
+
+	//target
+	shared_ptr<Target> new_target = make_shared<Target>(target_id++, selected_tribe, nullptr, 10, 30, 0, 0);
+
+	//forge
+	shared_ptr<Forge> new_forge = make_shared<Forge>(DEPTH::FORGE, forge_id++, selected_tribe, pos, r, recipe, produce, new_construction, new_target);
+	new_forge->target.lock()->pos = &new_forge->pos;
+	return make_tuple(new_storage, new_construction, new_target, new_forge);
 }

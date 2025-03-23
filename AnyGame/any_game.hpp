@@ -7,6 +7,7 @@
 #include <array>
 #include <memory>
 #include <functional>
+#include <tuple>
 
 using namespace std;
 

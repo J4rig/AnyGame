@@ -18,3 +18,5 @@ public:
 
 	void draw() const;
 };
+
+tuple<shared_ptr<Storage>, shared_ptr<Construction>, shared_ptr<Target>, shared_ptr<Stockpile>> createStockpile(Vector2 pos);

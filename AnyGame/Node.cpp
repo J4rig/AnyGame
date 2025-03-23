@@ -20,3 +20,17 @@ void Node::draw() const {
 		drawn_pieces += storage.lock()->is[i];
 	}
 };
+
+tuple<shared_ptr<Storage>, shared_ptr<Node>>
+createNode(array<int, MAX_TYPE> types, Vector2 pos) {
+	shared_ptr<float> r = make_shared<float>(NODE_R);
+
+	shared_ptr<Storage> new_storage = make_shared<Storage>(storage_id++, -1, pos, r, 0, resourceCount(types), types, true);
+
+	new_storage->is = types;
+	new_storage->will_be = types;
+
+	shared_ptr<Node> new_node = make_shared<Node>(DEPTH::NODE, node_id++, pos, r, new_storage);
+
+	return make_tuple(new_storage, new_node);
+}

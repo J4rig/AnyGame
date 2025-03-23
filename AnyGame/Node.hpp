@@ -18,3 +18,5 @@ public:
 
 	void draw() const;
 };
+
+tuple<shared_ptr<Storage>, shared_ptr<Node>> createNode(array<int, MAX_TYPE> types, Vector2 pos);

@@ -26,3 +26,5 @@ public:
 	void draw() const;
 
 };
+
+tuple<shared_ptr<Storage>, shared_ptr<Construction>, shared_ptr<Target>, shared_ptr<Forge>> createForge(array<int, MAX_TYPE> recipe, array<int, MAX_TYPE> produce, Vector2 pos);

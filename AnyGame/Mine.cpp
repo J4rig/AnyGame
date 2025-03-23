@@ -3,6 +3,7 @@
 #include "Storage.hpp"
 #include "Task.hpp"
 #include "Construction.hpp"
+#include "Target.hpp"
 
 #include <string>
 
@@ -47,4 +48,24 @@ void Mine::draw() const {
 	else {
 		DrawRing(pos, *r - 2, *r, 0, 360, 0, RED);
 	}
+}
+
+tuple<shared_ptr<Storage>, shared_ptr<Construction>, shared_ptr<Target>, shared_ptr<Mine>>
+createMine(Vector2 pos) {
+	shared_ptr<float> r = make_shared<float>(MINE_R);
+	//construction storage
+	std::array<int, MAX_TYPE> limits = { 0 };
+	limits[1] = 3;
+	shared_ptr<Storage> new_storage = make_shared<Storage>(storage_id++, selected_tribe, pos, r, 3, 2, limits, false);
+
+	//construction
+	shared_ptr<Construction> new_construction = make_shared<Construction>(construction_id++, pos, new_storage, weak_ptr<Task>());
+
+	//target
+	shared_ptr<Target> new_target = make_shared<Target>(target_id++, selected_tribe, nullptr, 10, 30, 0, 0);
+
+	//mine
+	shared_ptr<Mine> new_mine = make_shared<Mine>(DEPTH::MINE, mine_id++, selected_tribe, pos, r, new_construction, new_target);
+	new_mine->target.lock()->pos = &new_mine->pos;
+	return make_tuple(new_storage, new_construction, new_target, new_mine);
 }
