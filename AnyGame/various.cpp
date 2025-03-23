@@ -86,10 +86,10 @@ weak_ptr<Storage> findStorageToTakeFrom(Vector2 point, int tribe, vector<shared_
 		if (s->priority >= max_priority || !s->can_take) continue;
 
 		std::array<int, MAX_TYPE> tmp = hasTypes(s->is, wanted_types);
+		
 		for (int i = 0; i < MAX_TYPE; i++) {
 			tmp[i] = max(tmp[i] - s->reserved[tribe][i], 0);
 		}
-
 		/*cout << resourceCount(tmp) << "\n";
 		cout << unreservedCount(tmp, s->reserved[tribe]) << "\n";*/
 
@@ -188,6 +188,16 @@ int resourceCount(array<int, MAX_TYPE> stored_types) {
 	int result = 0;
 	for (int i = 0; i < MAX_TYPE; i++) {
 		result += stored_types[i];
+	}
+	return result;
+}
+
+vector<int> getStoredTypes(array<int, MAX_TYPE> array) {
+	vector<int> result = {};
+	for (int i = 0; i < MAX_TYPE; i++) {
+		for (int j = 0; j < array[i]; j++) {
+			result.emplace_back(i);
+		}
 	}
 	return result;
 }

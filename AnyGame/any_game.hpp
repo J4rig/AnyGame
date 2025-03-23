@@ -16,7 +16,7 @@ constexpr auto MAX_TRIBE = 4;
 
 constexpr auto SPEED_MOD = 100;
 
-constexpr auto WORKER_CAPACITY = 3;
+constexpr auto WORKER_CAPACITY = 4;
 
 constexpr auto MAX_PRIORITY = 4;
 
@@ -25,7 +25,7 @@ constexpr auto STOCKPILE_CAPACITY = 10;
 enum class DEPTH {
 	STOCKPILE = 0,
 	FORGE,
-	GENERATOR,
+	MINE,
 	FIELD,
 	NODE,
 	RAIDER,
@@ -36,6 +36,8 @@ enum class DEPTH {
 constexpr auto NODE_R = 5.0f;
 constexpr auto STOCKPILE_R = 40.0f;
 constexpr auto FORGE_R = 30.0f;
+constexpr auto MINE_R = 30.0f;
+
 
 
 inline int node_id = 0;
@@ -47,6 +49,7 @@ inline int resource_id = 0;
 inline int worker_id = 0;
 inline int generator_id = 0;
 inline int forge_id = 0;
+inline int mine_id = 0;
 
 inline int storage_id = 0;
 inline int task_id = 0;
@@ -76,13 +79,16 @@ class Task;
 
 class Construction;
 
+
 class Node;
 
 class Stockpile;
 
-class Generator;
+class Mine;
 
 class Forge;
+
+class Field;
 
 
 class Target;
@@ -113,6 +119,8 @@ bool hasType(array<int, MAX_TYPE> stored_types, int type);
 array<int, MAX_TYPE> arrangeTypes(vector<int> types);
 
 int resourceCount(array<int, MAX_TYPE> stored_types);
+
+vector<int> getStoredTypes(array<int, MAX_TYPE> array);
 
 int unreservedCount(array<int, MAX_TYPE> stored, array<int, MAX_TYPE> reserved);
 

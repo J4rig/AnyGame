@@ -39,7 +39,7 @@
     <ClCompile Include="Stockpile.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Generator.cpp">
+    <ClCompile Include="Mine.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Forge.cpp">
@@ -86,7 +86,7 @@
     <ClInclude Include="Construction.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Generator.hpp">
+    <ClInclude Include="Mine.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Forge.hpp">
@@ -105,6 +105,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Drawing.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Field.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

@@ -137,7 +137,7 @@
     <ClCompile Include="Target.cpp" />
     <ClCompile Include="Construction.cpp" />
     <ClCompile Include="Forge.cpp" />
-    <ClCompile Include="Generator.cpp" />
+    <ClCompile Include="Mine.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Raider.cpp" />
     <ClCompile Include="Settlement.cpp" />
@@ -152,11 +152,12 @@
   <ItemGroup>
     <ClInclude Include="any_game.hpp" />
     <ClInclude Include="Drawing.hpp" />
+    <ClInclude Include="Field.hpp" />
     <ClInclude Include="Node.hpp" />
     <ClInclude Include="Target.hpp" />
     <ClInclude Include="Construction.hpp" />
     <ClInclude Include="Forge.hpp" />
-    <ClInclude Include="Generator.hpp" />
+    <ClInclude Include="Mine.hpp" />
     <ClInclude Include="Raider.hpp" />
     <ClInclude Include="Settlement.hpp" />
     <ClInclude Include="Storage.hpp" />

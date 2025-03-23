@@ -9,7 +9,7 @@
 //#include "Construction.hpp"
 //#include "Stockpile.hpp"
 //#include "Resource.hpp"
-//#include "Generator.hpp"
+//#include "Mine.hpp"
 //#include "Forge.hpp"
 //#include "Worker.hpp"
 //
@@ -35,7 +35,7 @@
 //
 //
 //
-//	vector<weak_ptr<Generator>> generators;
+//	vector<weak_ptr<Mine>> generators;
 //
 //	vector<weak_ptr<Stockpile>> stockpiles;
 //

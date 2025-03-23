@@ -57,11 +57,6 @@ vector<int> Worker::forgetStorage(shared_ptr<Storage> storage) {
 vector<int> Worker::die() {
 
 	if (state == WORKER_STATES::TRANSPORTING) {
-		cout 
-		<< "Killing worker " << id << "\n\t"
-		<< "Types to deliver: " << types_to_deliver.size() << "\n\t"
-		<< "Collected types: " << collected_types.size() << "\n\t"
-		<< "Targeted storages: " << targeted_storages.size() << "\n";
 
 		for (int t : types_to_deliver) {
 			targeted_storages.front().lock()->will_be[t]++;

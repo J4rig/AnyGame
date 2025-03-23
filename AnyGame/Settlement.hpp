@@ -9,7 +9,7 @@ public:
 
 	vector<shared_ptr<Task>> tasks;
 
-	vector<shared_ptr<Generator>> generators;
+	vector<shared_ptr<Mine>> mines;
 
 	vector<shared_ptr<Stockpile>> stockpiles;
 
