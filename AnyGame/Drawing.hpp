@@ -9,3 +9,5 @@ public :
 
 	virtual void draw() const ;
 };
+
+inline auto const drawing_cmp = [](weak_ptr<Drawing> left, weak_ptr<Drawing> right) {return left.lock()->z < right.lock()->z; };

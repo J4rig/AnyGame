@@ -33,7 +33,6 @@ enum class DEPTH {
 	WORKER,
 };
 
-
 constexpr auto NODE_R = 5.0f;
 constexpr auto STOCKPILE_R = 40.0f;
 constexpr auto FORGE_R = 30.0f;
@@ -133,6 +132,8 @@ bool addToStorage(weak_ptr<Storage>& storage, array<int, MAX_TYPE> types);
 
 array<int, MAX_TYPE> addArrays(array<int, MAX_TYPE> a, array<int, MAX_TYPE> b);
 
-void insertStorageShared(vector<shared_ptr<Storage>>& storages, shared_ptr<Storage> storage);
+void insertStorage(vector<shared_ptr<Storage>>& storages, shared_ptr<Storage> storage);
 
-void insertTaskShared(vector<shared_ptr<Task>>& tasks, shared_ptr<Task> task);
+void insertTask(vector<shared_ptr<Task>>& tasks, shared_ptr<Task> task);
+
+void insertDrawing(vector<weak_ptr<Drawing>>& drawings, shared_ptr<Drawing> drawing);

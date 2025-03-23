@@ -3,6 +3,7 @@
 #include "Storage.hpp"
 #include "Task.hpp"
 #include "Target.hpp"
+#include "Drawing.hpp"
 
 #include <iostream>
 #include <algorithm>
@@ -258,12 +259,17 @@ array<int, MAX_TYPE> addArrays(array<int, MAX_TYPE> a, array<int, MAX_TYPE> b) {
 	return result;
 }
 
-void insertStorageShared(vector<shared_ptr<Storage>>& storages, shared_ptr<Storage> storage) {
+void insertStorage(vector<shared_ptr<Storage>>& storages, shared_ptr<Storage> storage) {
 	auto pos = lower_bound(storages.begin(), storages.end(), storage, storage_cmp_shared);
 	storages.insert(pos, storage);
 }
 
-void insertTaskShared(vector<shared_ptr<Task>>& tasks, shared_ptr<Task> task) {
+void insertTask(vector<shared_ptr<Task>>& tasks, shared_ptr<Task> task) {
 	auto pos = lower_bound(tasks.begin(), tasks.end(), task, task_cmp_shared);
 	tasks.insert(pos, task);
+}
+
+void insertDrawing(vector<weak_ptr<Drawing>>& drawings, shared_ptr<Drawing> drawing) {
+	auto pos = lower_bound(drawings.begin(), drawings.end(), drawing, drawing_cmp);
+	drawings.insert(pos, drawing);
 }
