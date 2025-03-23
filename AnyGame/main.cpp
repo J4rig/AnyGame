@@ -453,8 +453,7 @@ int main() {
 							}
 
 							if (!mine->storage.lock()->isEmpty() || !mine->generated.lock()->isEmpty()) {
-								array<int, MAX_TYPE> types = addArrays(mine->storage.lock()->is, mine->generated.lock()->is);
-								tuple<shared_ptr<Storage>, shared_ptr<Node>> result = createNode(types, mine->pos);
+								tuple<shared_ptr<Storage>, shared_ptr<Node>> result = createNode(mine->generated.lock()->is, mine->pos);
 								insertStorageShared(storages, get<0>(result));
 								nodes.emplace_back(get<1>(result));
 								drawings.emplace_back(get<1>(result));
@@ -464,7 +463,7 @@ int main() {
 							shared_ptr<Storage> obj_genarated = mine->generated.lock();
 							erase_if(storages, [obj_storage, obj_genarated](shared_ptr<Storage> s) {return s == obj_storage || s == obj_genarated; });
 
-							settlement->forges.erase(settlement->forges.begin() + mine_i);
+							settlement->mines.erase(settlement->mines.begin() + mine_i);
 							mine_i--;
 							continue;
 						}
