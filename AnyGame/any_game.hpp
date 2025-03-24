@@ -24,7 +24,8 @@ constexpr auto MAX_PRIORITY = 4;
 constexpr auto STOCKPILE_CAPACITY = 10;
 
 enum class DEPTH {
-	STOCKPILE = 0,
+	SETTLEMENT = 0,
+	STOCKPILE,
 	FORGE,
 	MINE,
 	FIELD,

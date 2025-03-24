@@ -47,7 +47,8 @@ int main() {
 	bool recipe_or_produce = false;
 
 	for (int i = 0; i < MAX_TRIBE; i++) {
-		shared_ptr<Settlement> new_settlement = make_shared<Settlement>(settlement_id++, Vector2{ 0,0 }, 1.0f);
+		shared_ptr<Settlement> new_settlement = make_shared<Settlement>(DEPTH::SETTLEMENT, i, settlement_id++, Vector2{ 0,0 }, 1.0f);
+		insertDrawing(drawings, new_settlement);
 		tribes.emplace_back(make_shared<Tribe>(tribe_id++, new_settlement));
 	}
 
@@ -139,7 +140,6 @@ int main() {
 		if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT) && type_cnt > 0) {
 			tuple<shared_ptr<Storage>, shared_ptr<Node>> result = createNode(node_types, GetMousePosition());
 			insertStorage(storages, get<0>(result));
-			//insertStorageWeak(storages, get<0>(result));
 			nodes.emplace_back(get<1>(result));
 
 
@@ -261,9 +261,7 @@ int main() {
 						tuple<shared_ptr<Storage>,shared_ptr<Node>> result = createNode(arrangeTypes(types), pos);
 						insertStorage(storages, get<0>(result));
 						nodes.emplace_back(get<1>(result));
-						insertDrawing(drawings,get<1>(result));
-
-						
+						insertDrawing(drawings, get<1>(result));
 						continue;
 					}
 					settlement->workers[worker]->update(storages, settlement->tasks);
@@ -293,7 +291,7 @@ int main() {
 								}
 
 								shared_ptr<Storage> obj = construction->storage.lock();
-								erase_if(storages, [obj](shared_ptr<Storage> s) {; return s == obj; });
+								erase_if(storages, [obj](shared_ptr<Storage> s) {return s == obj; });
 							}
 
 							else if (!construction->task.expired()) {
@@ -622,6 +620,7 @@ int main() {
 						}
 					}	
 				}
+				settlement->update();
 			}
 		}
 

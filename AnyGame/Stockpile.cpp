@@ -27,7 +27,7 @@ void Stockpile::draw() const {
 		//DrawText(("r: " + to_string(storage.lock()->id) + " p: " + to_string(storage.lock()->priority)).c_str(), pos.x + 5, pos.y + *r - 2, 15, GREEN);
 	}
 	else if (!construction.lock()->storage.expired()) {
-		DrawRing(pos, *r - 2, *r, 0, 360, 0, RED);
+		DrawRing(pos, *r - 2, *r, 0, 360, 0, GRAY);
 		float piece = 360.0f * (1.0f / (float)construction.lock()->storage.lock()->capacity);
 		int drawn_pieces = 0;
 		for (int i = 0; i < MAX_TYPE; i++) {
@@ -37,7 +37,7 @@ void Stockpile::draw() const {
 		}
 	}
 	else {
-		DrawRing(pos, *r - 2, *r, 0, 360, 0, RED);
+		DrawRing(pos, *r - 2, *r, 0, 360, 0, GRAY);
 	}
 }
 

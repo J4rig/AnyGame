@@ -13,14 +13,14 @@ Forge::Forge(DEPTH z,int id, int tribe, Vector2 pos, shared_ptr<float> r, array<
 void Forge::draw() const {
 
 	if (construction.expired() && !storage_in.expired() && !storage_out.expired()) {
-		DrawCircleLinesV(pos, *r, GRAY);
+		DrawCircleLinesV(pos, *r, tribe_color[tribe]);
 		if (!task.expired()) {
-			DrawRing(pos, *r - 4, *r, 0, 360 * (task.lock()->work_done / task.lock()->work_to_do), 0, GRAY);
+			DrawRing(pos, *r - 4, *r, 0, 360 * (task.lock()->work_done / task.lock()->work_to_do), 0, tribe_color[tribe]);
 		}
 
 		float piece = 180.0f * (1.0f / (float)storage_in.lock()->capacity);
 		int drawn_pieces = 0;
-		DrawCircleLinesV(pos, *r - 5, GRAY);
+		DrawCircleLinesV(pos, *r - 5, tribe_color[tribe]);
 		for (int i = 0; i < MAX_TYPE; i++) {
 			DrawRing(pos, 10, *r - 5, drawn_pieces * piece, (storage_in.lock()->is[i] + drawn_pieces) * piece, 0, type_color[i]);
 			drawn_pieces += storage_in.lock()->is[i];
@@ -28,7 +28,7 @@ void Forge::draw() const {
 
 		piece = 180.0f * (1.0f / (float)storage_out.lock()->capacity);
 		drawn_pieces = 0;
-		DrawCircleLinesV(pos, *r - 5, GRAY);
+		DrawCircleLinesV(pos, *r - 5, tribe_color[tribe]);
 		for (int i = 0; i < MAX_TYPE; i++) {
 			DrawRing(pos, 10, *r - 5, 180 + drawn_pieces * piece, 180 + (storage_out.lock()->is[i] + drawn_pieces) * piece, 0, type_color[i]);
 			drawn_pieces += storage_out.lock()->is[i];
@@ -36,7 +36,7 @@ void Forge::draw() const {
 
 	}
 	else if (!construction.expired() && !construction.lock()->storage.expired()) {
-		DrawRing(pos, *r - 2, *r, 0, 360, 0, RED);
+		DrawRing(pos, *r - 2, *r, 0, 360, 0, GRAY);
 		float piece = 360.0f * (1.0f / (float)construction.lock()->storage.lock()->capacity);
 		int drawn_pieces = 0;
 		for (int i = 0; i < MAX_TYPE; i++) {
@@ -46,7 +46,7 @@ void Forge::draw() const {
 		}
 	}
 	else {
-		DrawRing(pos, *r - 2, *r, 0, 360, 0, RED);
+		DrawRing(pos, *r - 2, *r, 0, 360, 0, GRAY);
 	}
 }
 
