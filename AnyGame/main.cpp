@@ -23,6 +23,62 @@
 #include <string>
 #include <algorithm>
 
+class Game {
+public:
+	vector<shared_ptr<Storage>> *storages;
+	vector<shared_ptr<Node>> *nodes;
+	vector<shared_ptr<Tribe>> *tribes;
+
+	vector<weak_ptr<Drawing>>* drawings;
+	vector<weak_ptr<Target>> *targets;
+
+
+	void target_expired(Stockpile* stockpile);
+};
+
+void Game::target_expired(Stockpile* stockpile) {
+	shared_ptr<Construction> construction = stockpile->construction.lock();
+	if (!construction->storage.expired()) {
+		for (shared_ptr<Tribe> tribe : *tribes) {
+			for (shared_ptr<Settlement> settlement : tribe->settlements) {
+				for (shared_ptr<Worker> worker : settlement->workers) {
+					array<int, MAX_TYPE> types = arrangeTypes(worker->forgetStorage(construction->storage.lock()));
+					if (!types.empty()) {
+						tuple<shared_ptr<Storage>, shared_ptr<Node>> result = createNode(types, worker->pos);
+						insertStorage(*storages, get<0>(result));
+						nodes->emplace_back(get<1>(result));
+						insertDrawing(*drawings, get<1>(result));
+					}
+				}
+			}
+		}
+
+		if (!construction->storage.lock()->isEmpty()) {
+			tuple<shared_ptr<Storage>, shared_ptr<Node>> result = createNode(construction->storage.lock()->is, stockpile->pos);
+			insertStorage(*storages, get<0>(result));
+			nodes->emplace_back(get<1>(result));
+			insertDrawing(*drawings, get<1>(result));
+		}
+
+		shared_ptr<Storage> obj = construction->storage.lock();
+		erase_if(*storages, [obj](shared_ptr<Storage> s) {return s == obj; });
+	}
+
+	else if (!construction->task.expired()) {
+		shared_ptr<Task> obj = construction->task.lock();
+		for (shared_ptr<Tribe> tribe : *tribes) {
+			for (shared_ptr<Settlement> settlement : tribe->settlements) {	
+				erase_if(settlement->tasks, [obj](shared_ptr<Task> t) {return t == obj; });
+			}
+		}
+	}
+	for (shared_ptr<Tribe> tribe : *tribes) {
+		for (shared_ptr<Settlement> settlement : tribe->settlements) {
+			erase_if(settlement->stockpiles, [stockpile](shared_ptr<Stockpile> s) {return s.get() == stockpile; });
+		}
+	}
+}
+
 int main() {
 
 	bool pause = false;
@@ -36,6 +92,14 @@ int main() {
 
 	vector<weak_ptr<Drawing>> drawings;
 	vector<weak_ptr<Target>> targets;
+
+	Game game = {};
+	game.storages = &storages;
+	game.nodes = &nodes;
+	game.tribes = &tribes;
+	game.drawings = &drawings;
+	game.targets = &targets;
+
 
 	
 	int type_cnt = 0;
@@ -179,6 +243,7 @@ int main() {
 			targets.emplace_back(get<2>(result));
 			tribes[selected_tribe]->settlements[selected_settlement]->stockpiles.emplace_back(get<3>(result));
 			insertDrawing(drawings,get<3>(result));
+			get<3>(result)->target_expired = [&game](Stockpile* s){ game.target_expired(s); };
 		}
 
 		if (IsKeyReleased(KEY_F) && selected_settlement != -1 && resourceCount(forge_recipe_types) > 0 && resourceCount(forge_produce_types) > 0) {
@@ -242,7 +307,8 @@ int main() {
 			}
 
 			for (int target = 0; target < tribe->targets.size(); target++) {
-				if (tribe->targets[target]->isDead() && !tribe->targets[target]->canAttack()) {
+				if (tribe->targets[target]->isDead()) {
+					tribe->targets[target]->expired();
 					tribe->targets.erase(tribe->targets.begin() + target);
 					target--;
 					continue;
@@ -271,38 +337,6 @@ int main() {
 					shared_ptr<Stockpile> stockpile = settlement->stockpiles[stockpile_i];
 					if (!stockpile->construction.expired()) {
 						shared_ptr<Construction> construction = stockpile->construction.lock();
-						if (stockpile->target.expired()) {
-							if (!construction->storage.expired()) {
-								for (shared_ptr<Worker> worker : settlement->workers) {
-									array<int,MAX_TYPE> types = arrangeTypes(worker->forgetStorage(construction->storage.lock()));
-									if (!types.empty()) {
-										tuple<shared_ptr<Storage>, shared_ptr<Node>> result = createNode(types, worker->pos);
-										insertStorage(storages, get<0>(result));
-										nodes.emplace_back(get<1>(result));
-										insertDrawing(drawings,get<1>(result));
-									}
-								}
-
-								if (!stockpile->construction.lock()->storage.lock()->isEmpty()) {
-									tuple<shared_ptr<Storage>, shared_ptr<Node>> result = createNode(construction->storage.lock()->is, stockpile->pos);
-									insertStorage(storages, get<0>(result));
-									nodes.emplace_back(get<1>(result));
-									insertDrawing(drawings,get<1>(result));
-								}
-
-								shared_ptr<Storage> obj = construction->storage.lock();
-								erase_if(storages, [obj](shared_ptr<Storage> s) {return s == obj; });
-							}
-
-							else if (!construction->task.expired()) {
-								shared_ptr<Task> obj = construction->task.lock();
-								erase_if(settlement->tasks, [obj](shared_ptr<Task> t) {return t == obj; });
-							}
-
-							settlement->stockpiles.erase(settlement->stockpiles.begin() + stockpile_i);
-							stockpile_i--;
-							continue;
-						}
 						if (!construction->storage.expired()) {
 							shared_ptr<Storage> storage = construction->storage.lock();
 							if (storage->isFull(-1)) {

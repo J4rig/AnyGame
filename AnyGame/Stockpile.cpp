@@ -10,6 +10,10 @@ Stockpile::Stockpile(DEPTH z, int id, int tribe, Vector2 pos, shared_ptr<float> 
 	Drawing(z), id(id), tribe(tribe), pos(pos), r(r), construction(construction), storage(storage), target(target) {
 };
 
+void Stockpile::die() {
+	target_expired(this);
+}
+
 void Stockpile::draw() const {
 	if (construction.expired()) {
 		DrawRing(pos, *r - 2, *r, 0, 360, 0, tribe_color[tribe]);
@@ -58,5 +62,7 @@ createStockpile(Vector2 pos) {
 	//stockpile
 	shared_ptr<Stockpile> new_stockpile = make_shared<Stockpile>(DEPTH::STOCKPILE, stockpile_id++, selected_tribe, pos, r, new_construction, weak_ptr<Storage>(), new_target);
 	new_stockpile->target.lock()->pos = &new_stockpile->pos;
+	new_stockpile->target.lock()->expired = [new_stockpile](){new_stockpile->die(); };
+
 	return make_tuple(new_storage, new_construction, new_target, new_stockpile);
 }
